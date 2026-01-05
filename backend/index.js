@@ -51,24 +51,24 @@ app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
   });
 });
 
-// ================= SOCKET LOGIC (🔥 FIXED 🔥) =================
+// ================= SOCKET LOGIC =================
 io.on('connection', (socket) => {
-  console.log('🟢 User connected:', socket.id);
+  console.log('🟢 Connected:', socket.id);
 
+  // ✅ user attach to socket
   socket.on('new-user-joined', (user) => {
     socket.user = user;
-
-    // notify others
     socket.broadcast.emit('user-joined', user);
   });
 
+  // ✅ message handling
   socket.on('send', (data) => {
-    if (!data || !data.message) return;
+    if (!socket.user) return;
 
-    // 🔥 SEND TO EVERYONE (ALL TABS)
     io.emit('receive', {
       message: data.message,
-      user: socket.user
+      user: socket.user,
+      senderId: socket.id
     });
   });
 
@@ -76,11 +76,10 @@ io.on('connection', (socket) => {
     if (socket.user) {
       socket.broadcast.emit('left', socket.user);
     }
-    console.log('🔴 User disconnected:', socket.id);
   });
 });
 
-// ================= START SERVER =================
+// ================= START =================
 const PORT = process.env.PORT || 10000;
 server.listen(PORT, () => {
   console.log('Server running on port', PORT);

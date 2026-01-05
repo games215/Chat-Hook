@@ -1,3 +1,4 @@
+// ================= IMPORTS =================
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -6,10 +7,11 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 
+// ================= EXPRESS & SERVER =================
 const app = express();
 const server = http.createServer(app);
 
-// Socket.IO setup
+// ================= SOCKET.IO =================
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -17,18 +19,26 @@ const io = new Server(server, {
   }
 });
 
-// Middlewares
+// ================= MIDDLEWARES =================
 app.use(cors());
 app.use(express.json());
 
-// Uploads folder (Render-safe)
+// ================= FRONTEND SERVE =================
+// ⚠️ frontend folder must exist
+app.use(express.static(path.join(__dirname, 'frontend')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+});
+
+// ================= UPLOADS FOLDER =================
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 app.use('/uploads', express.static(uploadDir));
 
-// Multer config
+// ================= MULTER CONFIG =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -40,7 +50,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Profile upload API
+// ================= PROFILE UPLOAD API =================
 app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
   const { name, gender, region } = req.body;
 
@@ -61,7 +71,7 @@ app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
   });
 });
 
-// Socket users store
+// ================= SOCKET USERS =================
 const users = {};
 
 io.on('connection', (socket) => {
@@ -110,26 +120,21 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const user = users[socket.id];
     if (user) {
-      socket.broadcast.emit('left', {
-        name: user.name,
-        gender: user.gender,
-        region: user.region,
-        profilePicture: user.profilePicture
-      });
+      socket.broadcast.emit('left', user);
       delete users[socket.id];
       console.log('User left:', user.name);
     }
   });
 });
 
-// Optional API
+// ================= OPTIONAL API =================
 app.get('/connected-users', (req, res) => {
   res.json({
     users: Object.values(users)
   });
 });
 
-// ✅ Render / GitHub compatible PORT
+// ================= START SERVER =================
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log('Server running on port:', PORT);

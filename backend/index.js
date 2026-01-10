@@ -21,10 +21,9 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// ================= FRONTEND SERVE (✅ FIXED) =================
+// ================= FRONTEND SERVE =================
 // backend -> ../frontend
 const frontendPath = path.join(__dirname, '../frontend');
-
 app.use(express.static(frontendPath));
 
 app.get('/', (req, res) => {
@@ -78,6 +77,7 @@ const users = {};
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // New user joins
   socket.on('new-user-joined', (user) => {
     users[socket.id] = {
       name: user.name,
@@ -89,24 +89,34 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('user-joined', users[socket.id]);
   });
 
+  // Sending messages
   socket.on('send', (messageData) => {
-    const sender = users[socket.id];
-    if (!sender) return;
-
-    // ✅ GLOBAL MESSAGE
+    // ✅ Use client data first, fallback to server stored user
     io.emit('receive', {
       message: messageData.message,
-      user: sender,
+      user: messageData.user || users[socket.id],
       timestamp: messageData.timestamp || new Date().toLocaleTimeString()
     });
   });
 
+  // Typing events
+  socket.on('typing-start', () => {
+    const user = users[socket.id];
+    if (user) socket.broadcast.emit('user-typing', user.name);
+  });
+
+  socket.on('typing-stop', () => {
+    socket.broadcast.emit('user-stop-typing');
+  });
+
+  // Disconnect
   socket.on('disconnect', () => {
     const user = users[socket.id];
     if (user) {
       socket.broadcast.emit('left', user);
       delete users[socket.id];
     }
+    console.log('User disconnected:', socket.id);
   });
 });
 

@@ -1,4 +1,4 @@
- express = require('express');
+const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
@@ -9,7 +9,7 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.IO setup
+// ================= SOCKET.IO =================
 const io = new Server(server, {
   cors: {
     origin: '*',
@@ -17,18 +17,28 @@ const io = new Server(server, {
   }
 });
 
-// Middlewares
+// ================= MIDDLEWARES =================
 app.use(cors());
 app.use(express.json());
 
-// Uploads folder (Render-safe)
+// ================= FRONTEND SERVE (✅ FIXED) =================
+// backend -> ../frontend
+const frontendPath = path.join(__dirname, '../frontend');
+
+app.use(express.static(frontendPath));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// ================= UPLOADS FOLDER =================
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 app.use('/uploads', express.static(uploadDir));
 
-// Multer config
+// ================= MULTER CONFIG =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -40,7 +50,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Profile upload API
+// ================= PROFILE UPLOAD API =================
 app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
   const { name, gender, region } = req.body;
 
@@ -61,9 +71,10 @@ app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
   });
 });
 
-// Socket users store
+// ================= SOCKET USERS STORE =================
 const users = {};
 
+// ================= SOCKET EVENTS =================
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
@@ -72,9 +83,7 @@ io.on('connection', (socket) => {
       name: user.name,
       gender: user.gender,
       region: user.region,
-      profilePicture: user.profilePicture || null,
-      socketId: socket.id,
-      joinTime: new Date()
+      profilePicture: user.profilePicture || null
     };
 
     socket.broadcast.emit('user-joined', users[socket.id]);
@@ -84,52 +93,29 @@ io.on('connection', (socket) => {
     const sender = users[socket.id];
     if (!sender) return;
 
-    socket.broadcast.emit('receive', {
+    // ✅ GLOBAL MESSAGE
+    io.emit('receive', {
       message: messageData.message,
-      user: {
-        name: sender.name,
-        gender: sender.gender,
-        region: sender.region,
-        profilePicture: sender.profilePicture
-      },
+      user: sender,
       timestamp: messageData.timestamp || new Date().toLocaleTimeString()
     });
-  });
-
-  socket.on('typing-start', () => {
-    const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit('user-typing', user.name);
-    }
-  });
-
-  socket.on('typing-stop', () => {
-    socket.broadcast.emit('user-stop-typing');
   });
 
   socket.on('disconnect', () => {
     const user = users[socket.id];
     if (user) {
-      socket.broadcast.emit('left', {
-        name: user.name,
-        gender: user.gender,
-        region: user.region,
-        profilePicture: user.profilePicture
-      });
+      socket.broadcast.emit('left', user);
       delete users[socket.id];
-      console.log('User left:', user.name);
     }
   });
 });
 
-// Optional API
+// ================= OPTIONAL API =================
 app.get('/connected-users', (req, res) => {
-  res.json({
-    users: Object.values(users)
-  });
+  res.json({ users: Object.values(users) });
 });
 
-// ✅ Render / GitHub compatible PORT
+// ================= SERVER START =================
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log('Server running on port:', PORT);

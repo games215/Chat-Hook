@@ -1,137 +1,188 @@
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const multer = require('multer');
-const path = require('path');
-const cors = require('cors');
-const fs = require('fs');
+// ================= SOCKET CONNECTION =================
 
-const app = express();
-const server = http.createServer(app);
+// ❌ OLD (hardcoded backend)
+// const socket = io("https://yourbackend.replit.app");
 
-// 🔥 CHANGE: transports added (Render fix)
-const io = new Server(server, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  },
-  transports: ['websocket', 'polling'] // ✅ ADD
+// ✅ NEW (auto works on localhost + Render)
+const socket = io(window.location.origin, {
+  transports: ['websocket', 'polling']
 });
 
-// Middlewares
-app.use(cors());
-app.use(express.json());
+// ✅ Debug helper (Render issues ke liye)
+socket.on('connect_error', (err) => {
+  console.error('Socket connection error:', err.message);
+});
 
-// Uploads folder (Render-safe)
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+// ================= DOM ELEMENTS =================
+const form = document.getElementById('send-container');
+const messageInput = document.getElementById('messageInp');
+const messageContainer = document.querySelector('.send');
+
+// ================= USER DATA =================
+let currentUser = {
+  name: '',
+  gender: '',
+  region: '',
+  profilePicture: ''
+};
+
+// ================= COMEDY CLUB =================
+let currentJoke = '';
+let jokeCount = 0;
+let likeCount = 0;
+
+const jokesDatabase = [
+  "Why don't scientists trust atoms? Because they make up everything!",
+  "Why did the scarecrow win an award? He was outstanding in his field!",
+  "Why don't eggs tell jokes? They'd crack each other up!",
+  "What do you call a fake noodle? An impasta!",
+  "Why did the math book look so sad? Because it had too many problems!",
+  "What do you call a bear with no teeth? A gummy bear!",
+  "Why couldn't the bicycle stand up by itself? It was two tired!",
+  "What do you call a sleeping bull? A bulldozer!",
+  "Why don't skeletons fight each other? They don't have the guts!",
+  "What do you call a fish wearing a crown? King of the sea!",
+  "Why did the coffee file a police report? It got mugged!",
+  "What do you call a pony with a sore throat? A little hoarse!",
+  "Why did the tomato turn red? Because it saw the salad dressing!",
+  "What do you call a snowman with a suntan? A puddle!",
+  "Why don't sharks eat clowns? Because they taste funny!"
+];
+
+// ================= MESSAGE APPEND =================
+const append = (message, position, userData = null) => {
+  const messageElement = document.createElement('div');
+
+  if (userData && userData.profilePicture) {
+    messageElement.innerHTML = `
+      <div class="message-with-avatar ${position}">
+        <img src="${userData.profilePicture}" class="message-avatar">
+        <div class="message-content">
+          <div class="message-sender">${userData.name}</div>
+          <div class="message-text">${message}</div>
+          <div class="message-info">${userData.gender} • ${userData.region}</div>
+        </div>
+      </div>
+    `;
+  } else {
+    messageElement.innerText = message;
+    messageElement.classList.add('message', position);
+  }
+
+  messageContainer.append(messageElement);
+  messageContainer.scrollTop = messageContainer.scrollHeight;
+};
+
+// ================= SEND MESSAGE =================
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const message = messageInput.value.trim();
+  if (!message) return;
+
+  const messageData = {
+    message,
+    user: currentUser,
+    timestamp: new Date().toLocaleTimeString()
+  };
+
+  append(`You: ${message}`, 'right', currentUser);
+  socket.emit('send', messageData);
+  messageInput.value = '';
+});
+
+// ================= COMEDY FUNCTIONS =================
+function getNewJoke() {
+  const index = Math.floor(Math.random() * jokesDatabase.length);
+  currentJoke = jokesDatabase[index];
+  document.getElementById('joke-display').textContent = currentJoke;
+  jokeCount++;
+  document.getElementById('joke-count').textContent = jokeCount;
 }
-app.use('/uploads', express.static(uploadDir));
 
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + file.originalname;
-    cb(null, uniqueName);
-  }
-});
-const upload = multer({ storage });
+function openComedyClub() {
+  document.getElementById('comedy-modal').style.display = 'flex';
+}
 
-// Profile upload API
-app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
-  const { name, gender, region } = req.body;
+function closeComedyClub() {
+  document.getElementById('comedy-modal').style.display = 'none';
+}
 
-  if (!name || !gender || !region) {
-    return res.status(400).json({
-      success: false,
-      message: 'Missing user info'
+function shareJokeToChat() {
+  if (!currentUser.name) return alert("Join first!");
+
+  const msg = `😂 Comedy Club Joke: ${currentJoke}`;
+  append(`You: ${msg}`, 'right', currentUser);
+  socket.emit('send', {
+    message: msg,
+    user: currentUser,
+    timestamp: new Date().toLocaleTimeString()
+  });
+  closeComedyClub();
+}
+
+// ================= JOIN MODAL =================
+const joinModal = document.getElementById('join-modal');
+const joinForm = document.getElementById('join-form');
+const joinName = document.getElementById('join-name');
+const joinGender = document.getElementById('join-gender');
+const joinRegion = document.getElementById('join-region');
+const joinPicture = document.getElementById('join-picture');
+
+joinForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const name = joinName.value.trim();
+  const gender = joinGender.value;
+  const region = joinRegion.value.trim();
+  const pictureFile = joinPicture.files[0];
+
+  currentUser = { name, gender, region, profilePicture: '' };
+
+  if (pictureFile) {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('gender', gender);
+    formData.append('region', region);
+    formData.append('profilePicture', pictureFile);
+
+    // ✅ Render-safe API
+    const res = await fetch('/upload-profile', {
+      method: 'POST',
+      body: formData
     });
+
+    const data = await res.json();
+    currentUser.profilePicture = data.fileUrl;
   }
 
-  const filename = req.file ? req.file.filename : null;
-  const fileUrl = filename ? `/uploads/${filename}` : null;
-
-  res.json({
-    success: true,
-    filename,
-    fileUrl
-  });
+  socket.emit('new-user-joined', currentUser);
+  joinModal.style.display = 'none';
+  append(`You joined as ${name}`, 'right', currentUser);
 });
 
-// Socket users store
-const users = {};
-
-io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
-
-  socket.on('new-user-joined', (user) => {
-    users[socket.id] = {
-      name: user.name,
-      gender: user.gender,
-      region: user.region,
-      profilePicture: user.profilePicture || null,
-      socketId: socket.id,
-      joinTime: new Date()
-    };
-
-    socket.broadcast.emit('user-joined', users[socket.id]);
-  });
-
-  socket.on('send', (messageData) => {
-    const sender = users[socket.id];
-    if (!sender) return;
-
-    socket.broadcast.emit('receive', {
-      message: messageData.message,
-      user: {
-        name: sender.name,
-        gender: sender.gender,
-        region: sender.region,
-        profilePicture: sender.profilePicture
-      },
-      timestamp: messageData.timestamp || new Date().toLocaleTimeString()
-    });
-  });
-
-  socket.on('typing-start', () => {
-    const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit('user-typing', user.name);
-    }
-  });
-
-  socket.on('typing-stop', () => {
-    socket.broadcast.emit('user-stop-typing');
-  });
-
-  socket.on('disconnect', () => {
-    const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit('left', {
-        name: user.name,
-        gender: user.gender,
-        region: user.region,
-        profilePicture: user.profilePicture
-      });
-      delete users[socket.id];
-      console.log('User left:', user.name);
-    }
-  });
+// ================= SOCKET EVENTS =================
+socket.on('user-joined', (user) => {
+  append(`${user.name} joined the chat`, 'left', user);
 });
 
-// Optional API
-app.get('/connected-users', (req, res) => {
-  res.json({
-    users: Object.values(users)
-  });
+socket.on('receive', (data) => {
+  append(data.message, 'left', data.user);
 });
 
-// ✅ Render / GitHub compatible PORT
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
-  console.log('Server running on port:', PORT);
+socket.on('left', (user) => {
+  append(`${user.name} left the chat`, 'left', user);
+});
+
+socket.on('connect', () => {
+  console.log('Connected to server');
+});
+
+socket.on('disconnect', () => {
+  append('Disconnected from server', 'left');
+});
+
+// ================= INIT =================
+window.addEventListener('load', () => {
+  joinModal.style.display = 'flex';
+  getNewJoke();
 });

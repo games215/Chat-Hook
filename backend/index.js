@@ -9,100 +9,129 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
-// ================= SOCKET.IO =================
+// 🔥 CHANGE: transports added (Render fix)
 const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  }
+  },
+  transports: ['websocket', 'polling'] // ✅ ADD
 });
 
-// ================= MIDDLEWARE =================
+// Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// ================= FRONTEND (IMPORTANT FIX) =================
-// frontend folder ko serve karo
-app.use(express.static(path.join(__dirname, '../frontend')));
-
-// root route pe index.html bhejo
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
-});
-
-// ================= UPLOAD FOLDER =================
+// Uploads folder (Render-safe)
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 app.use('/uploads', express.static(uploadDir));
 
-// ================= MULTER =================
+// Multer config
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueName + path.extname(file.originalname));
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
   }
 });
 const upload = multer({ storage });
 
-// ================= API ROUTES =================
-app.get('/test', (req, res) => {
-  res.send('Server working fine');
-});
+// Profile upload API
+app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
+  const { name, gender, region } = req.body;
 
-app.post('/upload-profile', upload.single('profile'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+  if (!name || !gender || !region) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing user info'
+    });
   }
+
+  const filename = req.file ? req.file.filename : null;
+  const fileUrl = filename ? `/uploads/${filename}` : null;
 
   res.json({
     success: true,
-    imageUrl: `/uploads/${req.file.filename}`
+    filename,
+    fileUrl
   });
 });
 
-// ================= SOCKET LOGIC =================
-let users = [];
+// Socket users store
+const users = {};
 
-io.on('connection', socket => {
+io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  socket.on('new-user-joined', user => {
-    socket.user = user;
-    users.push(user);
-    io.emit('connected-users', users);
-  });
-
-  socket.on('send', message => {
-    const messageWithUser = {
-      message,
-      user: socket.user,
-      messageId: Date.now(),
-      timestamp: new Date().toISOString()
+  socket.on('new-user-joined', (user) => {
+    users[socket.id] = {
+      name: user.name,
+      gender: user.gender,
+      region: user.region,
+      profilePicture: user.profilePicture || null,
+      socketId: socket.id,
+      joinTime: new Date()
     };
 
-    socket.broadcast.emit('receive', messageWithUser);
+    socket.broadcast.emit('user-joined', users[socket.id]);
+  });
 
-    socket.emit('message-sent', {
-      messageId: messageWithUser.messageId,
-      timestamp: messageWithUser.timestamp
+  socket.on('send', (messageData) => {
+    const sender = users[socket.id];
+    if (!sender) return;
+
+    socket.broadcast.emit('receive', {
+      message: messageData.message,
+      user: {
+        name: sender.name,
+        gender: sender.gender,
+        region: sender.region,
+        profilePicture: sender.profilePicture
+      },
+      timestamp: messageData.timestamp || new Date().toLocaleTimeString()
     });
   });
 
-  socket.on('disconnect', () => {
-    if (socket.user) {
-      users = users.filter(u => u.name !== socket.user.name);
-      io.emit('connected-users', users);
+  socket.on('typing-start', () => {
+    const user = users[socket.id];
+    if (user) {
+      socket.broadcast.emit('user-typing', user.name);
     }
-    console.log('User disconnected:', socket.id);
+  });
+
+  socket.on('typing-stop', () => {
+    socket.broadcast.emit('user-stop-typing');
+  });
+
+  socket.on('disconnect', () => {
+    const user = users[socket.id];
+    if (user) {
+      socket.broadcast.emit('left', {
+        name: user.name,
+        gender: user.gender,
+        region: user.region,
+        profilePicture: user.profilePicture
+      });
+      delete users[socket.id];
+      console.log('User left:', user.name);
+    }
   });
 });
 
-// ================= START SERVER =================
+// Optional API
+app.get('/connected-users', (req, res) => {
+  res.json({
+    users: Object.values(users)
+  });
+});
+
+// ✅ Render / GitHub compatible PORT
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log('Server running on port:', PORT);
 });

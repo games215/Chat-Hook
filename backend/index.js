@@ -1,188 +1,88 @@
-// ================= SOCKET CONNECTION =================
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const multer = require('multer');
+const path = require('path');
+const cors = require('cors');
+const fs = require('fs');
 
-// ❌ OLD (hardcoded backend)
-// const socket = io("https://yourbackend.replit.app");
+const app = express();
+const server = http.createServer(app);
 
-// ✅ NEW (auto works on localhost + Render)
-const socket = io(window.location.origin, {
+/* ================= SOCKET.IO ================= */
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  },
   transports: ['websocket', 'polling']
 });
 
-// ✅ Debug helper (Render issues ke liye)
-socket.on('connect_error', (err) => {
-  console.error('Socket connection error:', err.message);
+/* ================= MIDDLEWARES ================= */
+app.use(cors());
+app.use(express.json());
+
+/* ================= ROOT ================= */
+app.get('/', (req, res) => {
+  res.send('Chat-Hook Server is running 🚀');
 });
 
-// ================= DOM ELEMENTS =================
-const form = document.getElementById('send-container');
-const messageInput = document.getElementById('messageInp');
-const messageContainer = document.querySelector('.send');
+/* ================= UPLOADS ================= */
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+app.use('/uploads', express.static(uploadDir));
 
-// ================= USER DATA =================
-let currentUser = {
-  name: '',
-  gender: '',
-  region: '',
-  profilePicture: ''
-};
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) =>
+    cb(null, Date.now() + '-' + file.originalname)
+});
+const upload = multer({ storage });
 
-// ================= COMEDY CLUB =================
-let currentJoke = '';
-let jokeCount = 0;
-let likeCount = 0;
+/* ================= PROFILE API ================= */
+app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
+  const { name, gender, region } = req.body;
 
-const jokesDatabase = [
-  "Why don't scientists trust atoms? Because they make up everything!",
-  "Why did the scarecrow win an award? He was outstanding in his field!",
-  "Why don't eggs tell jokes? They'd crack each other up!",
-  "What do you call a fake noodle? An impasta!",
-  "Why did the math book look so sad? Because it had too many problems!",
-  "What do you call a bear with no teeth? A gummy bear!",
-  "Why couldn't the bicycle stand up by itself? It was two tired!",
-  "What do you call a sleeping bull? A bulldozer!",
-  "Why don't skeletons fight each other? They don't have the guts!",
-  "What do you call a fish wearing a crown? King of the sea!",
-  "Why did the coffee file a police report? It got mugged!",
-  "What do you call a pony with a sore throat? A little hoarse!",
-  "Why did the tomato turn red? Because it saw the salad dressing!",
-  "What do you call a snowman with a suntan? A puddle!",
-  "Why don't sharks eat clowns? Because they taste funny!"
-];
-
-// ================= MESSAGE APPEND =================
-const append = (message, position, userData = null) => {
-  const messageElement = document.createElement('div');
-
-  if (userData && userData.profilePicture) {
-    messageElement.innerHTML = `
-      <div class="message-with-avatar ${position}">
-        <img src="${userData.profilePicture}" class="message-avatar">
-        <div class="message-content">
-          <div class="message-sender">${userData.name}</div>
-          <div class="message-text">${message}</div>
-          <div class="message-info">${userData.gender} • ${userData.region}</div>
-        </div>
-      </div>
-    `;
-  } else {
-    messageElement.innerText = message;
-    messageElement.classList.add('message', position);
+  if (!name || !gender || !region) {
+    return res.status(400).json({ success: false });
   }
 
-  messageContainer.append(messageElement);
-  messageContainer.scrollTop = messageContainer.scrollHeight;
-};
+  const filename = req.file ? req.file.filename : null;
 
-// ================= SEND MESSAGE =================
-form.addEventListener('submit', (e) => {
-  e.preventDefault();
-  const message = messageInput.value.trim();
-  if (!message) return;
-
-  const messageData = {
-    message,
-    user: currentUser,
-    timestamp: new Date().toLocaleTimeString()
-  };
-
-  append(`You: ${message}`, 'right', currentUser);
-  socket.emit('send', messageData);
-  messageInput.value = '';
-});
-
-// ================= COMEDY FUNCTIONS =================
-function getNewJoke() {
-  const index = Math.floor(Math.random() * jokesDatabase.length);
-  currentJoke = jokesDatabase[index];
-  document.getElementById('joke-display').textContent = currentJoke;
-  jokeCount++;
-  document.getElementById('joke-count').textContent = jokeCount;
-}
-
-function openComedyClub() {
-  document.getElementById('comedy-modal').style.display = 'flex';
-}
-
-function closeComedyClub() {
-  document.getElementById('comedy-modal').style.display = 'none';
-}
-
-function shareJokeToChat() {
-  if (!currentUser.name) return alert("Join first!");
-
-  const msg = `😂 Comedy Club Joke: ${currentJoke}`;
-  append(`You: ${msg}`, 'right', currentUser);
-  socket.emit('send', {
-    message: msg,
-    user: currentUser,
-    timestamp: new Date().toLocaleTimeString()
+  res.json({
+    success: true,
+    fileUrl: filename ? `/uploads/${filename}` : null
   });
-  closeComedyClub();
-}
-
-// ================= JOIN MODAL =================
-const joinModal = document.getElementById('join-modal');
-const joinForm = document.getElementById('join-form');
-const joinName = document.getElementById('join-name');
-const joinGender = document.getElementById('join-gender');
-const joinRegion = document.getElementById('join-region');
-const joinPicture = document.getElementById('join-picture');
-
-joinForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const name = joinName.value.trim();
-  const gender = joinGender.value;
-  const region = joinRegion.value.trim();
-  const pictureFile = joinPicture.files[0];
-
-  currentUser = { name, gender, region, profilePicture: '' };
-
-  if (pictureFile) {
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('gender', gender);
-    formData.append('region', region);
-    formData.append('profilePicture', pictureFile);
-
-    // ✅ Render-safe API
-    const res = await fetch('/upload-profile', {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await res.json();
-    currentUser.profilePicture = data.fileUrl;
-  }
-
-  socket.emit('new-user-joined', currentUser);
-  joinModal.style.display = 'none';
-  append(`You joined as ${name}`, 'right', currentUser);
 });
 
-// ================= SOCKET EVENTS =================
-socket.on('user-joined', (user) => {
-  append(`${user.name} joined the chat`, 'left', user);
+/* ================= SOCKET USERS ================= */
+const users = {};
+
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('new-user-joined', (user) => {
+    users[socket.id] = user;
+    socket.broadcast.emit('user-joined', user);
+  });
+
+  socket.on('send', (data) => {
+    const sender = users[socket.id];
+    if (!sender) return;
+    socket.broadcast.emit('receive', data);
+  });
+
+  socket.on('disconnect', () => {
+    const user = users[socket.id];
+    if (user) {
+      socket.broadcast.emit('left', user);
+      delete users[socket.id];
+    }
+  });
 });
 
-socket.on('receive', (data) => {
-  append(data.message, 'left', data.user);
-});
-
-socket.on('left', (user) => {
-  append(`${user.name} left the chat`, 'left', user);
-});
-
-socket.on('connect', () => {
-  console.log('Connected to server');
-});
-
-socket.on('disconnect', () => {
-  append('Disconnected from server', 'left');
-});
-
-// ================= INIT =================
-window.addEventListener('load', () => {
-  joinModal.style.display = 'flex';
-  getNewJoke();
+/* ================= START SERVER ================= */
+const PORT = process.env.PORT || 8000;
+server.listen(PORT, () => {
+  console.log('Server running on port:', PORT);
 });

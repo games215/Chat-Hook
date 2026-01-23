@@ -1,18 +1,13 @@
 // ================= SOCKET CONNECTION =================
-const socket = io({
-  transports: ['websocket', 'polling']
-});
+// SAME ORIGIN — Render + local dono pe kaam karega
+const socket = io();
 
-socket.on('connect_error', (err) => {
-  console.error('Socket connection error:', err.message);
-});
-
-// ================= DOM ELEMENTS =================
+// ================= DOM =================
 const form = document.getElementById('send-container');
 const messageInput = document.getElementById('messageInp');
 const messageContainer = document.querySelector('.send');
 
-// ================= USER DATA =================
+// ================= USER =================
 let currentUser = {
   name: '',
   gender: '',
@@ -30,74 +25,73 @@ const jokesDatabase = [
   "Why did the scarecrow win an award? He was outstanding in his field!",
   "Why don't eggs tell jokes? They'd crack each other up!",
   "What do you call a fake noodle? An impasta!",
-  "Why did the math book look so sad? Because it had too many problems!",
-  "What do you call a bear with no teeth? A gummy bear!",
-  "Why couldn't the bicycle stand up by itself? It was two tired!",
-  "What do you call a sleeping bull? A bulldozer!",
-  "Why don't skeletons fight each other? They don't have the guts!",
-  "What do you call a fish wearing a crown? King of the sea!"
+  "Why did the math book look so sad? Because it had too many problems!"
 ];
 
 // ================= MESSAGE APPEND =================
-const append = (message, position, userData = null) => {
-  const messageElement = document.createElement('div');
+function append(message, position, user = null) {
+  const div = document.createElement('div');
 
-  if (userData && userData.profilePicture) {
-    messageElement.innerHTML = `
+  if (user && user.profilePicture) {
+    div.innerHTML = `
       <div class="message-with-avatar ${position}">
-        <img src="${userData.profilePicture}" class="message-avatar">
+        <img src="${user.profilePicture}" class="message-avatar">
         <div class="message-content">
-          <div class="message-sender">${userData.name}</div>
-          <div class="message-text">${message}</div>
-          <div class="message-info">${userData.gender} • ${userData.region}</div>
+          <strong>${user.name}</strong>
+          <div>${message}</div>
+          <small>${user.gender} • ${user.region}</small>
         </div>
       </div>
     `;
   } else {
-    messageElement.innerText = message;
-    messageElement.classList.add('message', position);
+    div.classList.add('message', position);
+    div.innerText = message;
   }
 
-  messageContainer.append(messageElement);
+  messageContainer.append(div);
   messageContainer.scrollTop = messageContainer.scrollHeight;
-};
+}
 
 // ================= SEND MESSAGE =================
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', e => {
   e.preventDefault();
-  if (!currentUser.name) return alert('Join first');
+  const msg = messageInput.value.trim();
+  if (!msg) return;
 
-  const message = messageInput.value.trim();
-  if (!message) return;
+  append(msg, 'right', currentUser);
 
-  const messageData = {
-    message,
-    timestamp: new Date().toLocaleTimeString()
-  };
+  // ✅ SERVER EXPECTS STRING ONLY
+  socket.emit('send', msg);
 
-  append(message, 'right', currentUser);
-  socket.emit('send', messageData);
   messageInput.value = '';
 });
 
-// ================= COMEDY FUNCTIONS =================
-function getNewJoke() {
-  const index = Math.floor(Math.random() * jokesDatabase.length);
-  currentJoke = jokesDatabase[index];
-  document.getElementById('joke-display').textContent = currentJoke;
-  jokeCount++;
-  document.getElementById('joke-count').textContent = jokeCount;
-}
+// ================= RECEIVE MESSAGE =================
+socket.on('receive', data => {
+  append(data.message, 'left', data.user);
+});
 
-// ================= JOIN =================
+// ================= JOIN MODAL =================
 const joinModal = document.getElementById('join-modal');
 const joinForm = document.getElementById('join-form');
 const joinName = document.getElementById('join-name');
 const joinGender = document.getElementById('join-gender');
 const joinRegion = document.getElementById('join-region');
 const joinPicture = document.getElementById('join-picture');
+const profilePreview = document.getElementById('profile-preview');
 
-joinForm.addEventListener('submit', async (e) => {
+joinPicture.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    profilePreview.src = ev.target.result;
+    profilePreview.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+});
+
+joinForm.addEventListener('submit', async e => {
   e.preventDefault();
 
   const name = joinName.value.trim();
@@ -105,43 +99,77 @@ joinForm.addEventListener('submit', async (e) => {
   const region = joinRegion.value.trim();
   const pictureFile = joinPicture.files[0];
 
+  if (!name || !gender || !region) {
+    alert('Fill all fields');
+    return;
+  }
+
   currentUser = { name, gender, region, profilePicture: '' };
 
+  // ================= PROFILE UPLOAD =================
   if (pictureFile) {
     const formData = new FormData();
-    formData.append('name', name);
-    formData.append('gender', gender);
-    formData.append('region', region);
-    formData.append('profilePicture', pictureFile);
+    formData.append('profile', pictureFile);
 
-    const res = await fetch('/upload-profile', {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await res.json();
-    currentUser.profilePicture = data.fileUrl;
+    try {
+      const res = await fetch('/upload-profile', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentUser.profilePicture = data.imageUrl;
+      }
+    } catch {
+      currentUser.profilePicture = URL.createObjectURL(pictureFile);
+    }
+  } else {
+    currentUser.profilePicture = generateAvatar(name);
   }
 
   socket.emit('new-user-joined', currentUser);
+
   joinModal.style.display = 'none';
   append(`You joined as ${name}`, 'right', currentUser);
 });
 
-// ================= SOCKET EVENTS =================
-socket.on('user-joined', (user) => {
-  append(`${user.name} joined the chat`, 'left', user);
+// ================= AVATAR =================
+function generateAvatar(name) {
+  const initial = name[0].toUpperCase();
+  return `data:image/svg+xml;base64,${btoa(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+      <rect width="100" height="100" fill="#007bff"/>
+      <text x="50%" y="60%" text-anchor="middle" font-size="40" fill="#fff">${initial}</text>
+    </svg>
+  `)}`;
+}
+
+// ================= COMEDY CLUB =================
+function getNewJoke() {
+  const joke = jokesDatabase[Math.floor(Math.random() * jokesDatabase.length)];
+  currentJoke = joke;
+  document.getElementById('joke-display').innerText = joke;
+  jokeCount++;
+  document.getElementById('joke-count').innerText = jokeCount;
+}
+
+function shareJokeToChat() {
+  if (!currentJoke) return;
+  append(`😂 ${currentJoke}`, 'right', currentUser);
+  socket.emit('send', `😂 ${currentJoke}`);
+}
+
+// ================= SOCKET STATUS =================
+socket.on('connect', () => {
+  console.log('Connected');
 });
 
-socket.on('receive', (data) => {
-  append(data.message, 'left', data.user);
+socket.on('disconnect', () => {
+  append('Disconnected from server', 'left');
 });
 
-socket.on('left', (user) => {
-  append(`${user.name} left the chat`, 'left', user);
-});
-
-window.addEventListener('load', () => {
+// ================= INIT =================
+window.onload = () => {
   joinModal.style.display = 'flex';
   getNewJoke();
-});
+};

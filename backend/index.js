@@ -9,92 +9,100 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
-/* ================= SOCKET.IO ================= */
+// ================= SOCKET.IO =================
 const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  },
-  transports: ['websocket', 'polling']
+  }
 });
 
-/* ================= MIDDLEWARES ================= */
+// ================= MIDDLEWARE =================
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-/* ================= SERVE FRONTEND (IMPORTANT) ================= */
-// 👉 Render ko batata hai index.html kaha hai
-const frontendPath = path.join(__dirname, 'frontend');
-app.use(express.static(frontendPath));
+// ================= FRONTEND (IMPORTANT FIX) =================
+// frontend folder ko serve karo
+app.use(express.static(path.join(__dirname, '../frontend')));
 
-/* ================= ROOT ================= */
+// root route pe index.html bhejo
 app.get('/', (req, res) => {
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-/* ================= UPLOADS ================= */
+// ================= UPLOAD FOLDER =================
 const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
 app.use('/uploads', express.static(uploadDir));
 
+// ================= MULTER =================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + '-' + file.originalname)
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueName + path.extname(file.originalname));
+  }
 });
 const upload = multer({ storage });
 
-/* ================= PROFILE API ================= */
-app.post('/upload-profile', upload.single('profilePicture'), (req, res) => {
-  const { name, gender, region } = req.body;
+// ================= API ROUTES =================
+app.get('/test', (req, res) => {
+  res.send('Server working fine');
+});
 
-  if (!name || !gender || !region) {
-    return res.status(400).json({ success: false });
+app.post('/upload-profile', upload.single('profile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
   }
-
-  const filename = req.file ? req.file.filename : null;
 
   res.json({
     success: true,
-    fileUrl: filename ? `/uploads/${filename}` : null
+    imageUrl: `/uploads/${req.file.filename}`
   });
 });
 
-/* ================= SOCKET USERS ================= */
-const users = {};
+// ================= SOCKET LOGIC =================
+let users = [];
 
-io.on('connection', (socket) => {
+io.on('connection', socket => {
   console.log('User connected:', socket.id);
 
-  socket.on('new-user-joined', (user) => {
-    users[socket.id] = user;
-    socket.broadcast.emit('user-joined', user);
+  socket.on('new-user-joined', user => {
+    socket.user = user;
+    users.push(user);
+    io.emit('connected-users', users);
   });
 
-  socket.on('send', (data) => {
-    const sender = users[socket.id];
-    if (!sender) return;
+  socket.on('send', message => {
+    const messageWithUser = {
+      message,
+      user: socket.user,
+      messageId: Date.now(),
+      timestamp: new Date().toISOString()
+    };
 
-    // 🔒 safety: user attach
-    socket.broadcast.emit('receive', {
-      message: data.message,
-      user: sender,
-      timestamp: data.timestamp
+    socket.broadcast.emit('receive', messageWithUser);
+
+    socket.emit('message-sent', {
+      messageId: messageWithUser.messageId,
+      timestamp: messageWithUser.timestamp
     });
   });
 
   socket.on('disconnect', () => {
-    const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit('left', user);
-      delete users[socket.id];
+    if (socket.user) {
+      users = users.filter(u => u.name !== socket.user.name);
+      io.emit('connected-users', users);
     }
+    console.log('User disconnected:', socket.id);
   });
 });
 
-/* ================= START SERVER ================= */
-const PORT = process.env.PORT || 10000; // 🔥 Render FIX
+// ================= START SERVER =================
+const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
-  console.log('Server running on port:', PORT);
+  console.log(`Server running on port ${PORT}`);
 });

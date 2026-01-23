@@ -1,9 +1,9 @@
 {
-  "name": "chat-hook-backend",
+  "name": "chat-hook",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "backend/index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node backend/index.js"
   },
   "dependencies": {
     "express": "^4.18.2",

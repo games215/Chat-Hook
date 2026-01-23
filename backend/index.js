@@ -22,14 +22,20 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+/* ================= SERVE FRONTEND (IMPORTANT) ================= */
+// 👉 Render ko batata hai index.html kaha hai
+const frontendPath = path.join(__dirname, 'frontend');
+app.use(express.static(frontendPath));
+
 /* ================= ROOT ================= */
 app.get('/', (req, res) => {
-  res.send('Chat-Hook Server is running 🚀');
+  res.sendFile(path.join(frontendPath, 'index.html'));
 });
 
 /* ================= UPLOADS ================= */
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+
 app.use('/uploads', express.static(uploadDir));
 
 const storage = multer.diskStorage({
@@ -69,7 +75,13 @@ io.on('connection', (socket) => {
   socket.on('send', (data) => {
     const sender = users[socket.id];
     if (!sender) return;
-    socket.broadcast.emit('receive', data);
+
+    // 🔒 safety: user attach
+    socket.broadcast.emit('receive', {
+      message: data.message,
+      user: sender,
+      timestamp: data.timestamp
+    });
   });
 
   socket.on('disconnect', () => {
@@ -82,7 +94,7 @@ io.on('connection', (socket) => {
 });
 
 /* ================= START SERVER ================= */
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 10000; // 🔥 Render FIX
 server.listen(PORT, () => {
   console.log('Server running on port:', PORT);
 });

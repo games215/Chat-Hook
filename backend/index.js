@@ -9,14 +9,12 @@ const fs = require('fs');
 const app = express();
 const server = http.createServer(app);
 
-// 🔥 Socket.IO setup (ONLY ADD)
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
-  },
-  transports: ['websocket', 'polling'], // ✅ ADD
-  allowEIO3: true                         // ✅ ADD
+  }
 });
 
 // Middlewares
@@ -26,12 +24,12 @@ app.use(express.json());
 // Frontend serve karne ke liye
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// Root route
+// Root route - serve frontend index.html
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-// Uploads folder
+// Uploads folder (Render-safe)
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
@@ -40,8 +38,13 @@ app.use('/uploads', express.static(uploadDir));
 
 // Multer config
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = Date.now() + '-' + file.originalname;
+    cb(null, uniqueName);
+  }
 });
 const upload = multer({ storage });
 
@@ -82,14 +85,14 @@ io.on('connection', (socket) => {
       joinTime: new Date()
     };
 
-    io.emit('user-joined', users[socket.id]); // 🔁 CHANGE ONLY
+    socket.broadcast.emit('user-joined', users[socket.id]);
   });
 
   socket.on('send', (messageData) => {
     const sender = users[socket.id];
     if (!sender) return;
 
-    io.emit('receive', {                    // 🔁 CHANGE ONLY
+    socket.broadcast.emit('receive', {
       message: messageData.message,
       user: {
         name: sender.name,
@@ -104,18 +107,18 @@ io.on('connection', (socket) => {
   socket.on('typing-start', () => {
     const user = users[socket.id];
     if (user) {
-      io.emit('user-typing', user.name); // 🔁
+      socket.broadcast.emit('user-typing', user.name);
     }
   });
 
   socket.on('typing-stop', () => {
-    io.emit('user-stop-typing'); // 🔁
+    socket.broadcast.emit('user-stop-typing');
   });
 
   socket.on('disconnect', () => {
     const user = users[socket.id];
     if (user) {
-      io.emit('left', {          // 🔁
+      socket.broadcast.emit('left', {
         name: user.name,
         gender: user.gender,
         region: user.region,
@@ -134,13 +137,9 @@ app.get('/connected-users', (req, res) => {
   });
 });
 
-// SPA fallback
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/index.html"));
-});
-
-// PORT
+// ✅ Render / GitHub compatible PORT
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log('Server running on port:', PORT);
+  console.log(`Frontend served from: ${path.join(__dirname, "../frontend")}`);
 });

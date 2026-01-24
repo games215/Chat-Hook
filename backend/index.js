@@ -1,4 +1,4 @@
-express = require('express');
+const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const multer = require('multer');
@@ -20,6 +20,14 @@ const io = new Server(server, {
 // Middlewares
 app.use(cors());
 app.use(express.json());
+
+// Frontend serve karne ke liye
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+// Root route - serve frontend index.html
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
 
 // Uploads folder (Render-safe)
 const uploadDir = path.join(__dirname, 'uploads');
@@ -129,8 +137,14 @@ app.get('/connected-users', (req, res) => {
   });
 });
 
+// 🔥 SPA fallback (VERY IMPORTANT FOR RENDER)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
+
 // ✅ Render / GitHub compatible PORT
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {
   console.log('Server running on port:', PORT);
+  console.log(`Frontend served from: ${path.join(__dirname, "../frontend")}`);
 });

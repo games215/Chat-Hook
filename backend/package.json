@@ -1,18 +1,15 @@
 {
-  "name": "global-chat-app",
+  "name": "chat-app-backend",
   "version": "1.0.0",
-  "description": "Real time global chat application using Socket.IO",
+  "description": "Real-time chat backend",
   "main": "index.js",
-
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-
   "engines": {
     "node": "18.x"
   },
-
   "dependencies": {
     "express": "^4.18.2",
     "socket.io": "^4.8.1",

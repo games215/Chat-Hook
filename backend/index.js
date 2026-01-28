@@ -1,5 +1,5 @@
 const express = require('express');
-const http = require('http');
+const https = require('https');
 const { Server } = require('socket.io');
 const multer = require('multer');
 const path = require('path');
@@ -7,7 +7,7 @@ const cors = require('cors');
 const fs = require('fs');
 
 const app = express();
-const server = http.createServer(app);
+const server = https.createServer(app);
 
 // Socket.IO setup
 const io = new Server(server, {

@@ -3090,7 +3090,11 @@
     // Socket.IO connection with error handling
     let socket;
     try {
-      socket = io('http://localhost:8000');
+     socket = io("https://chat-hook-1.onrender.com", {
+  transports: ["websocket", "polling"]
+  
+});
+
     } catch (error) {
       // Fallback: Create a mock socket object to prevent further errors
       socket = {
@@ -3730,7 +3734,7 @@
       const color = colors[name.length % colors.length];
       const initial = name.charAt(0).toUpperCase();
       currentUser.profilePicture = `data:image/svg+xml;base64,${btoa(`
-        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+        <svg width="100" height="100" xmlns="https://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style="stop-color:${color};stop-opacity:1" />

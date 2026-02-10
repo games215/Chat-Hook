@@ -2663,8 +2663,8 @@
       <div class="pulse-ring"></div>
     </div>
     
-    <!-- Your Logo -->
-    <img class="big-logo" src="c:\Users\Swastik\Downloads\556926684_833394115861252_4940220174240846961_n-removebg-preview.png" alt="Chat Hook Logo" />
+    <!-- Your Logo - FIXED WITH WEB URL -->
+    <img class="big-logo" src="https://via.placeholder.com/302x302/0cf/ffffff?text=Chat+Hook+Logo" alt="Chat Hook Logo" />
   </div>
 
   <!-- Comedy Club Button -->
@@ -3090,11 +3090,9 @@
     // Socket.IO connection with error handling
     let socket;
     try {
-     socket = io("https://chat-hook-1.onrender.com", {
-  transports: ["websocket", "polling"]
-  
-});
-
+      socket = io("https://chat-hook-1.onrender.com", {
+        transports: ["websocket", "polling"]
+      });
     } catch (error) {
       // Fallback: Create a mock socket object to prevent further errors
       socket = {
@@ -3363,7 +3361,7 @@
             setTimeout(() => {
               if (container.contains(firework)) container.removeChild(firework);
             }, 3000);
-          }, 1500);
+        }, 1500);
         }, i * 1000);
       }
     }

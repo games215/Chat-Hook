@@ -1,3 +1,4 @@
+
 // ===================================================
 // ✅ CHAT HOOK - REAL-TIME GLOBAL CHAT APPLICATION
 // ✅ FULLY COMPATIBLE WITH RENDER.COM

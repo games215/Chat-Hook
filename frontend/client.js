@@ -1,4 +1,3 @@
-
 // ===================================================
 // ✅ CHAT HOOK - REAL-TIME GLOBAL CHAT APPLICATION
 // ✅ FULLY COMPATIBLE WITH RENDER.COM
@@ -52,11 +51,11 @@ let currentUser = {
 };
 
 // ===================================================
-// ✅ MESSAGE DISPLAY FUNCTIONS
+// ✅ MESSAGE DISPLAY FUNCTIONS - FIXED AVATAR ISSUE
 // ===================================================
 
 /**
- * Append a message to the chat container
+ * Append a message to the chat container - FIXED: Now shows first letter of username
  * @param {string} message - The message text
  * @param {object} userData - User information
  * @param {boolean} isOwn - Whether it's user's own message
@@ -70,16 +69,22 @@ const appendMessage = (message, userData, isOwn = false) => {
     minute: '2-digit' 
   });
   
+  // ✅ FIXED: Avatar now shows first letter of username properly
+  // Get first letter of username, uppercase
+  const firstLetter = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
+  
+  // Generate avatar HTML - use CSS-based avatar with first letter
+  const avatarHTML = `<div class="user-avatar" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-weight: bold; font-size: 16px; width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--primary);">${firstLetter}</div>`;
+  
   messageElement.innerHTML = `
     <div class="message-bubble">
       <div class="message-user">
-        <img class="user-avatar" src="${userData.profilePicture}" alt="${userData.name}" 
-             onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(userData.name)}&background=0cf&color=fff&size=100'">
-        <div class="user-name">${userData.name}</div>
+        ${avatarHTML}
+        <div class="user-name">${userData.name || 'Unknown'}</div>
       </div>
       <div class="message-content">${message}</div>
       <div class="message-meta">
-        <span>${userData.gender} • ${userData.region}</span>
+        <span>${userData.gender || 'Unknown'} • ${userData.region || 'Unknown'}</span>
         <span>${time}</span>
       </div>
     </div>
@@ -190,7 +195,7 @@ function setupSocketEvents() {
     appendSystemMessage(`You joined as ${user.name}`, 'success');
   });
 
-  // ✅ Receive message from others
+  // ✅ Receive message from others - FIXED: Uses same avatar display logic
   socket.on('receive', (data) => {
     console.log('Message received from:', data.user.name);
     appendMessage(data.message, data.user, false);
@@ -377,7 +382,7 @@ if (messageInput) {
 }
 
 // ===================================================
-// ✅ JOIN FORM FUNCTIONALITY
+// ✅ JOIN FORM FUNCTIONALITY - FIXED: Creates proper avatar
 // ===================================================
 
 if (joinForm) {
@@ -398,12 +403,16 @@ if (joinForm) {
       return;
     }
 
-    // Generate profile picture with avatar
+    // ✅ FIXED: We don't need to generate SVG avatar anymore
+    // The CSS avatar will show the first letter automatically
+    // But we keep a minimal profilePicture for backward compatibility
+    
+    // Generate simple profile picture (optional, not required for display)
     const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
     const color = colors[name.length % colors.length];
     const initial = name.charAt(0).toUpperCase();
     
-    // Create SVG avatar
+    // Create SVG avatar (optional - now just for fallback)
     const profilePicture = `data:image/svg+xml;base64,${btoa(`
       <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -422,7 +431,7 @@ if (joinForm) {
       name: name, 
       gender: gender, 
       region: region, 
-      profilePicture: profilePicture,
+      profilePicture: profilePicture, // Optional, not used for display
       socketId: ''
     };
 

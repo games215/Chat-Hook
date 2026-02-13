@@ -1,0 +1,117 @@
+.logo{
+    display: block;
+    margin: auto;
+    height: 302px;
+    width: 302px;
+}
+
+#send-container{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(60, 117, 13, 0.904);
+    padding: 10px;
+    border-top: 3px solid black;
+    box-sizing: border-box;
+}
+
+#messageInp{
+    width: 92%;
+    border: 3px solid black;
+    height: 34px;
+}
+
+.btn{
+    cursor: pointer;
+    border: 2px solid black;
+    height: 34px;
+}
+
+body{
+    background-image: linear-gradient(rgb(175, 60, 127),rgb(13, 0, 128));
+    height: 100vh;
+    margin: 0;
+}
+
+.container{
+    max-width: 955px;
+    background-color: red;
+    margin: auto;
+    height: 60vh;
+    display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    overflow: scroll;
+}
+
+.message{
+       background-color: rgb(216, 253, 2);
+     width: fit-content;
+     max-width: 60%;
+     padding: 10px;
+}
+
+.left{
+    float: left;
+    clear: both;
+    align-self: flex-start;
+}
+
+.right{
+    float: right;
+    clear: both;
+    align-self: flex-end;
+}
+
+.send {
+    width: 100%;             
+    max-width: none;       
+    margin: -10px; 
+    padding: 10px;
+    padding-bottom: 70px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    height: 80vh;
+    overflow-y: auto;
+    scroll-behavior: smooth;
+}
+
+.message {
+    padding: 10px 15px;
+    margin: 8px 0;          
+    border-radius: 20px;
+    max-width: 70%;         
+    word-wrap: break-word;
+}
+
+.join-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+join-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 320px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.join-card h2 { margin: 0 0 10px 0; text-align:center; }
+.join-card input, .join-card select, .join-card button {
+  width: 100%;
+  padding: 8px 10px;
+  margin: 8px 0;
+  box-sizing: border-box;
+}

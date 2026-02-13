@@ -1880,7 +1880,7 @@
       border-radius: 20px;
       width: 90%;
       max-width: 700px;
-      max-height: 80vh; /* Limit height */
+      max-height: 80vh;
       text-align: center;
       color: var(--text);
       border: 1px solid rgba(0, 204, 255, 0.2);
@@ -1892,12 +1892,11 @@
     }
 
     .animation-content {
-      overflow-y: auto; /* Add scrollbar */
+      overflow-y: auto;
       padding-right: 10px;
       flex: 1;
     }
 
-    /* Custom scrollbar for animation content */
     .animation-content::-webkit-scrollbar {
       width: 8px;
     }
@@ -1986,7 +1985,7 @@
       gap: 10px;
       justify-content: center;
       margin-top: 20px;
-      flex-shrink: 0; /* Prevent controls from shrinking */
+      flex-shrink: 0;
     }
 
     .animation-controls button {
@@ -2044,7 +2043,7 @@
       margin: 0 auto;
       padding: 20px;
       padding-bottom: 100px;
-      height: calc(100vh - 350px); /* Adjusted for 302px logo */
+      height: calc(100vh - 350px);
       overflow-y: auto;
     }
 
@@ -2092,6 +2091,13 @@
       border-radius: 50%;
       margin-right: 10px;
       border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      font-weight: bold;
+      font-size: 16px;
     }
 
     .user-name {
@@ -2645,7 +2651,7 @@
     <button class="animation-btn" onclick="openAnimationSelector()">✨ Change Animation</button>
   </div>
 
-  <!-- YOUR ORIGINAL 302px LOGO WITH ANIMATIONS -->
+  <!-- YOUR ORIGINAL 302px LOGO WITH ANIMATIONS - FIXED PATH -->
   <div class="logo-container">
     <!-- Orbital Particles -->
     <div class="logo-orbital">
@@ -2663,8 +2669,8 @@
       <div class="pulse-ring"></div>
     </div>
     
-    <!-- Your Logo - FIXED WITH WEB URL -->
-    <img class="big-logo" src="https://via.placeholder.com/302x302/0cf/ffffff?text=Chat+Hook+Logo" alt="Chat Hook Logo" />
+    <!-- Your Logo - FIXED: Use absolute path to assets folder with fallback -->
+    <img class="big-logo" src="/assets/logo.png" alt="Chat Hook Logo" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAyIiBoZWlnaHQ9IjMwMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGNmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIj5DaGF0IEhvb2s8L3RleHQ+PC9zdmc+'">
   </div>
 
   <!-- Comedy Club Button -->
@@ -3188,7 +3194,7 @@
         const animationId = requestAnimationFrame(animate);
         container._gridScan.animationId = animationId;
         
-        time += 0.016; // ~60fps
+        time += 0.016;
         
         // Update scan position
         scanPosition += scanSpeed * 0.016;
@@ -3561,7 +3567,7 @@
       // Create connections between nodes
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          if (Math.random() > 0.7) { // Randomly connect nodes
+          if (Math.random() > 0.7) {
             const connection = document.createElement('div');
             connection.className = 'data-connection';
             
@@ -3704,7 +3710,7 @@
     }
     
     function processJoinForm() {
-      // Original join form processing code
+      // Original join form processing code - FIXED AVATAR
       const joinModal = document.getElementById('join-modal');
       const joinForm = document.getElementById('join-form');
       const joinName = document.getElementById('join-name');
@@ -3720,19 +3726,14 @@
         return;
       }
 
-      currentUser = { 
-        name: name, 
-        gender: gender, 
-        region: region, 
-        profilePicture: '' 
-      };
-
-      // Generate profile picture based on name
+      // Generate profile picture (optional, not used for display)
       const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
       const color = colors[name.length % colors.length];
       const initial = name.charAt(0).toUpperCase();
-      currentUser.profilePicture = `data:image/svg+xml;base64,${btoa(`
-        <svg width="100" height="100" xmlns="https://www.w3.org/2000/svg">
+      
+      // Create SVG avatar (optional - for backward compatibility)
+      const profilePicture = `data:image/svg+xml;base64,${btoa(`
+        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
@@ -3744,6 +3745,13 @@
         </svg>
       `)}`;
 
+      currentUser = { 
+        name: name, 
+        gender: gender, 
+        region: region, 
+        profilePicture: profilePicture
+      };
+
       socket.emit('new-user-joined', currentUser);
       joinModal.style.display = 'none';
       appendSystemMessage(`You joined the chat as ${name}`);
@@ -3752,7 +3760,6 @@
     // Animation functions
     function openAnimationSelector() {
       document.getElementById('animation-modal').style.display = 'flex';
-      // Reset to current animation when opening
       selectedAnimation = currentAnimation;
       updateAnimationSelection();
     }
@@ -3763,7 +3770,6 @@
     }
 
     function updateAnimationSelection() {
-      // Update active state in selector
       document.querySelectorAll('.animation-option').forEach(option => {
         option.classList.remove('active');
         if (option.dataset.animation === selectedAnimation) {
@@ -3771,7 +3777,6 @@
         }
       });
       
-      // Special handling for custom name animation
       if (selectedAnimation === 'custom-name') {
         document.getElementById('custom-name-input-container').style.display = 'block';
       } else {
@@ -3851,23 +3856,19 @@
     }
 
     function changeAnimation(animationType) {
-      // Clean up previous animation if it's GridScan
       if (currentAnimation === 'grid-scan') {
         cleanupGridScanAnimation();
       }
       
-      // Hide all animations
       const allAnimations = document.querySelectorAll('.animation-container, .floating-shapes, .neon-grid, .liquid-rainbow, .cosmic-energy, .holographic-prism, .digital-rain, .particle-galaxy, .chat-hook-animation, .custom-name-animation, .john-cena-animation');
       allAnimations.forEach(anim => {
         anim.style.display = 'none';
       });
       
-      // Show selected animation
       document.getElementById(`${animationType}-animation`).style.display = 'block';
       
       currentAnimation = animationType;
       
-      // Initialize specific animations
       const animationInitializers = {
         'quantum-wave': createQuantumWave,
         'cyber-grid': createCyberGrid,
@@ -3917,7 +3918,6 @@
         column.style.animationDuration = `${Math.random() * 5 + 5}s`;
         column.style.animationDelay = `${Math.random() * 5}s`;
         
-        // Create multiple characters in the column
         for (let j = 0; j < 20; j++) {
           const char = document.createElement('div');
           char.textContent = characters.charAt(Math.floor(Math.random() * characters.length));
@@ -3931,11 +3931,9 @@
 
     function createGalaxyParticles() {
       const galaxyContainer = document.getElementById('galaxy-animation');
-      // Clear existing particles
       const existingParticles = galaxyContainer.querySelectorAll('.galaxy-particle');
       existingParticles.forEach(particle => particle.remove());
       
-      // Create new particles
       for (let i = 0; i < 100; i++) {
         const particle = document.createElement('div');
         particle.className = 'galaxy-particle';
@@ -3949,7 +3947,6 @@
       const container = document.getElementById('chat-hook-animation');
       container.innerHTML = '';
       
-      // Create floating logo particles
       for (let i = 0; i < 30; i++) {
         const particle = document.createElement('div');
         particle.className = 'logo-particle';
@@ -3960,7 +3957,6 @@
         container.appendChild(particle);
       }
       
-      // Create hook elements
       for (let i = 0; i < 5; i++) {
         const hook = document.createElement('div');
         hook.className = 'hook-element';
@@ -3976,7 +3972,6 @@
       const gridContainer = document.getElementById('neon-grid-animation');
       gridContainer.innerHTML = '';
       
-      // Create horizontal grid lines
       for (let i = 0; i < 20; i++) {
         const line = document.createElement('div');
         line.className = 'grid-line horizontal';
@@ -3985,7 +3980,6 @@
         gridContainer.appendChild(line);
       }
       
-      // Create vertical grid lines
       for (let i = 0; i < 20; i++) {
         const line = document.createElement('div');
         line.className = 'grid-line vertical';
@@ -3999,7 +3993,6 @@
       const energyContainer = document.getElementById('cosmic-energy-animation');
       energyContainer.innerHTML = '';
       
-      // Create energy waves
       for (let i = 0; i < 4; i++) {
         const wave = document.createElement('div');
         wave.className = 'energy-wave';
@@ -4011,7 +4004,6 @@
       const prismContainer = document.getElementById('holographic-prism-animation');
       prismContainer.innerHTML = '';
       
-      // Create prism beams
       for (let i = 0; i < 8; i++) {
         const beam = document.createElement('div');
         beam.className = 'prism-beam';
@@ -4039,7 +4031,6 @@
       const container = document.getElementById('custom-name-animation');
       container.innerHTML = '';
       
-      // Create name particles
       for (let i = 0; i < name.length * 5; i++) {
         const charIndex = i % name.length;
         const particle = document.createElement('div');
@@ -4053,7 +4044,6 @@
         container.appendChild(particle);
       }
       
-      // Create trails
       for (let i = 0; i < 20; i++) {
         const trail = document.createElement('div');
         trail.className = 'name-trail';
@@ -4063,7 +4053,6 @@
         container.appendChild(trail);
       }
       
-      // Create echo effect
       for (let i = 0; i < 3; i++) {
         const echo = document.createElement('div');
         echo.className = 'name-echo';
@@ -4082,19 +4071,26 @@
       });
     });
 
+    // ✅ FIXED: appendMessage function - SIMPLE, CLEAN, NO SYNTAX ERRORS
     const appendMessage = (message, userData, isOwn = false) => {
       const messageElement = document.createElement('div');
       messageElement.className = `message ${isOwn ? 'own' : 'other'}`;
       
+      // Get first letter of username (uppercase)
+      const firstLetter = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
+      
+      // Simple avatar HTML - CSS div with first letter
+      const avatarHTML = `<div class="user-avatar" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-weight: bold; font-size: 16px;">${firstLetter}</div>`;
+      
       messageElement.innerHTML = `
         <div class="message-bubble">
           <div class="message-user">
-            <img class="user-avatar" src="${userData.profilePicture}" alt="${userData.name}" />
-            <div class="user-name">${userData.name}</div>
+            ${avatarHTML}
+            <div class="user-name">${userData.name || 'Unknown'}</div>
           </div>
           <div class="message-content">${message}</div>
           <div class="message-meta">
-            <span>${userData.gender} • ${userData.region}</span>
+            <span>${userData.gender || ''} • ${userData.region || ''}</span>
             <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
         </div>

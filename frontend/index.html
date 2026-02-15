@@ -50,6 +50,32 @@
       display: none;
     }
 
+    /* ===== FIXED USER AVATAR STYLES ===== */
+    .user-avatar {
+      width: 45px !important;
+      height: 45px !important;
+      border-radius: 50% !important;
+      background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+      color: white !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-weight: bold !important;
+      font-size: 20px !important;
+      border: 2px solid var(--accent) !important;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3) !important;
+      overflow: hidden !important;
+    }
+
+    /* Message user avatar fix */
+    .message .user-avatar {
+      width: 30px !important;
+      height: 30px !important;
+      font-size: 14px !important;
+      margin-right: 10px !important;
+      border-width: 1px !important;
+    }
+
     /* Grid Scan Animation */
     #grid-scan-animation {
       background: linear-gradient(135deg, #0a0a12 0%, #1a1a2e 100%);
@@ -1676,18 +1702,23 @@
       }
     }
 
-    /* Logo with futuristic glow - YOUR ORIGINAL 302px LOGO WITH ANIMATIONS */
+    /* ===== FIXED LOGO STYLES - MOVED TO TOP ===== */
     .logo-container {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
       text-align: center;
-      padding: 10px 0;
-      position: relative;
-      z-index: 10;
+      width: auto;
+      pointer-events: none;
       perspective: 1000px;
     }
 
     .big-logo {
-      height: 302px; /* YOUR EXACT 302px SIZE */
+      max-width: 180px;
       width: auto;
+      height: auto;
       filter: 
         drop-shadow(0 0 15px var(--primary)) 
         drop-shadow(0 0 30px rgba(0, 204, 255, 0.5))
@@ -1696,6 +1727,8 @@
       animation: logoGlow 3s ease-in-out infinite alternate,
                  logoFloat 6s ease-in-out infinite;
       transform-style: preserve-3d;
+      position: relative;
+      z-index: 10;
     }
 
     .big-logo:hover {
@@ -1727,7 +1760,7 @@
         transform: translateY(0px) rotateX(0deg);
       }
       50% {
-        transform: translateY(-10px) rotateX(5deg);
+        transform: translateY(-3px) rotateX(3deg);
       }
     }
 
@@ -1736,26 +1769,26 @@
         transform: scale(1.05) rotateY(10deg) translateY(0px);
       }
       100% {
-        transform: scale(1.05) rotateY(10deg) translateY(-5px);
+        transform: scale(1.05) rotateY(10deg) translateY(-2px);
       }
     }
 
-    /* Logo Orbital Particles */
+    /* Logo Orbital Particles - Adjusted for top position */
     .logo-orbital {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 400px;
-      height: 400px;
+      width: 250px;
+      height: 250px;
       pointer-events: none;
       z-index: 9;
     }
 
     .orbital-particle {
       position: absolute;
-      width: 6px;
-      height: 6px;
+      width: 3px;
+      height: 3px;
       border-radius: 50%;
       background: var(--accent);
       animation: orbital-rotate 8s linear infinite;
@@ -1769,21 +1802,21 @@
 
     @keyframes orbital-rotate {
       0% {
-        transform: rotate(0deg) translateX(200px) rotate(0deg);
+        transform: rotate(0deg) translateX(120px) rotate(0deg);
       }
       100% {
-        transform: rotate(360deg) translateX(200px) rotate(-360deg);
+        transform: rotate(360deg) translateX(120px) rotate(-360deg);
       }
     }
 
-    /* Logo Pulse Rings */
+    /* Logo Pulse Rings - Adjusted for top position */
     .logo-pulse {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 350px;
-      height: 350px;
+      width: 200px;
+      height: 200px;
       pointer-events: none;
       z-index: 8;
     }
@@ -1819,8 +1852,8 @@
     /* Animation Selector Button */
     .animation-selector-container {
       position: fixed;
-      top: 20px;
-      left: 20px;
+      top: 15px;
+      left: 15px;
       z-index: 1000;
     }
 
@@ -1828,10 +1861,11 @@
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       border: none;
-      padding: 12px 20px;
-      border-radius: 25px;
+      padding: 8px 16px;
+      border-radius: 20px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 14px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
       position: relative;
@@ -1851,7 +1885,7 @@
     }
 
     .animation-btn:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       box-shadow: 0 7px 20px rgba(0, 204, 255, 0.4);
     }
 
@@ -1859,7 +1893,7 @@
       transform: scale(1);
     }
 
-    /* Animation Selection Modal - UPDATED WITH SCROLLBAR */
+    /* Animation Selection Modal */
     .animation-modal {
       position: fixed;
       top: 0;
@@ -1876,10 +1910,10 @@
 
     .animation-card {
       background: var(--card-bg);
-      padding: 30px;
+      padding: 20px;
       border-radius: 20px;
       width: 90%;
-      max-width: 700px;
+      max-width: 600px;
       max-height: 80vh;
       text-align: center;
       color: var(--text);
@@ -1926,45 +1960,45 @@
     }
 
     .animation-card h2 {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       background: linear-gradient(90deg, var(--primary), var(--accent));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      font-size: 28px;
+      font-size: 24px;
     }
 
     .animation-category {
-      margin: 25px 0 15px;
+      margin: 15px 0 10px;
       text-align: left;
-      font-size: 18px;
+      font-size: 16px;
       color: var(--accent);
       border-bottom: 1px solid rgba(0, 204, 255, 0.3);
-      padding-bottom: 8px;
+      padding-bottom: 5px;
     }
 
     .animation-options {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 15px;
-      margin: 15px 0;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin: 10px 0;
     }
 
     .animation-option {
       background: rgba(30, 30, 50, 0.7);
       border: 2px solid rgba(100, 100, 255, 0.2);
-      border-radius: 15px;
-      padding: 20px 10px;
+      border-radius: 12px;
+      padding: 15px 8px;
       cursor: pointer;
       transition: all 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 5px;
     }
 
     .animation-option:hover {
-      transform: translateY(-5px);
+      transform: translateY(-3px);
       border-color: var(--primary);
       box-shadow: 0 10px 20px rgba(0, 204, 255, 0.2);
     }
@@ -1976,7 +2010,7 @@
     }
 
     .animation-icon {
-      font-size: 30px;
+      font-size: 24px;
       margin-bottom: 5px;
     }
 
@@ -1984,16 +2018,17 @@
       display: flex;
       gap: 10px;
       justify-content: center;
-      margin-top: 20px;
+      margin-top: 15px;
       flex-shrink: 0;
     }
 
     .animation-controls button {
-      padding: 12px 20px;
+      padding: 10px 16px;
       border: none;
-      border-radius: 25px;
+      border-radius: 20px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 14px;
       transition: all 0.3s ease;
     }
 
@@ -2009,7 +2044,7 @@
     }
 
     .animation-controls button:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     }
 
@@ -2020,13 +2055,13 @@
     /* Custom Name Input */
     .custom-name-input {
       width: 100%;
-      padding: 12px 15px;
+      padding: 10px 12px;
       margin: 10px 0;
       border: 1px solid rgba(100, 100, 255, 0.3);
-      border-radius: 10px;
+      border-radius: 8px;
       background: rgba(30, 30, 50, 0.7);
       color: var(--text);
-      font-size: 16px;
+      font-size: 14px;
       transition: all 0.3s ease;
     }
 
@@ -2036,23 +2071,36 @@
       box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
     }
 
-    /* Message container */
+    /* ===== FIXED MESSAGE CONTAINER - PROPER SPACING ===== */
     .message-container {
+      position: fixed;
+      top: 100px; /* Space for logo */
+      bottom: 80px; /* Space for input */
+      left: 0;
+      right: 0;
       width: 100%;
       max-width: 1200px;
       margin: 0 auto;
       padding: 20px;
-      padding-bottom: 100px;
-      height: calc(100vh - 350px);
       overflow-y: auto;
+      overflow-x: hidden;
+      scroll-behavior: smooth;
     }
 
-    /* Message styling */
+    /* Message styling with proper spacing */
     .message {
-      margin: 15px 0;
+      margin: 20px 0;
       animation: messageSlide 0.4s ease-out;
       display: flex;
       align-items: flex-start;
+    }
+
+    .message:first-child {
+      margin-top: 0;
+    }
+
+    .message:last-child {
+      margin-bottom: 0;
     }
 
     .message.own {
@@ -2082,22 +2130,23 @@
     .message-user {
       display: flex;
       align-items: center;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
     }
 
-    .user-avatar {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      margin-right: 10px;
-      border: 2px solid var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      font-weight: bold;
-      font-size: 16px;
+    /* FIXED: User avatar in messages */
+    .message .user-avatar {
+      width: 30px !important;
+      height: 30px !important;
+      border-radius: 50% !important;
+      margin-right: 10px !important;
+      border: 2px solid var(--primary) !important;
+      background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
+      color: white !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 14px !important;
+      font-weight: bold !important;
     }
 
     .user-name {
@@ -2111,13 +2160,14 @@
 
     .message-content {
       font-size: 15px;
-      line-height: 1.4;
+      line-height: 1.5;
+      word-wrap: break-word;
     }
 
     .message-meta {
       font-size: 11px;
       opacity: 0.7;
-      margin-top: 5px;
+      margin-top: 8px;
       display: flex;
       justify-content: space-between;
     }
@@ -2133,7 +2183,7 @@
       }
     }
 
-    /* Send container - Fixed with futuristic design */
+    /* ===== FIXED SEND CONTAINER - PROPER POSITIONING ===== */
     #send-container {
       display: flex;
       justify-content: center;
@@ -2143,7 +2193,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(10, 10, 20, 0.9);
+      background: rgba(10, 10, 20, 0.95);
       backdrop-filter: blur(15px);
       padding: 15px 20px;
       border-top: 1px solid rgba(0, 204, 255, 0.2);
@@ -2156,12 +2206,12 @@
       flex: 1;
       max-width: 800px;
       border: none;
-      height: 50px;
+      height: 45px;
       border-radius: 25px;
-      padding: 0 25px;
-      background: rgba(30, 30, 50, 0.8);
+      padding: 0 20px;
+      background: rgba(30, 30, 50, 0.9);
       color: var(--text);
-      font-size: 16px;
+      font-size: 15px;
       outline: none;
       border: 1px solid rgba(100, 100, 255, 0.2);
       transition: all 0.3s ease;
@@ -2170,7 +2220,7 @@
     #messageInp:focus {
       border-color: var(--primary);
       box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
-      background: rgba(40, 40, 60, 0.9);
+      background: rgba(40, 40, 60, 0.95);
     }
 
     #messageInp::placeholder {
@@ -2180,13 +2230,13 @@
     .btn {
       cursor: pointer;
       border: none;
-      height: 50px;
-      padding: 0 30px;
+      height: 45px;
+      padding: 0 25px;
       border-radius: 25px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       font-weight: 600;
-      font-size: 16px;
+      font-size: 15px;
       transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
@@ -2215,8 +2265,8 @@
     /* Comedy Club Button */
     .comedy-club-container {
       position: fixed;
-      top: 20px;
-      right: 20px;
+      top: 15px;
+      right: 15px;
       z-index: 1000;
     }
 
@@ -2224,10 +2274,11 @@
       background: linear-gradient(135deg, var(--accent), #ff6b6b);
       color: white;
       border: none;
-      padding: 12px 20px;
-      border-radius: 25px;
+      padding: 8px 16px;
+      border-radius: 20px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 14px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
       position: relative;
@@ -2247,7 +2298,7 @@
     }
 
     .comedy-btn:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       box-shadow: 0 7px 20px rgba(0, 255, 136, 0.4);
     }
 
@@ -2272,10 +2323,10 @@
 
     .comedy-card {
       background: var(--card-bg);
-      padding: 30px;
+      padding: 25px;
       border-radius: 20px;
       width: 90%;
-      max-width: 500px;
+      max-width: 450px;
       text-align: center;
       color: var(--text);
       border: 1px solid rgba(0, 204, 255, 0.2);
@@ -2295,41 +2346,42 @@
     }
 
     .comedy-card h2 {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       background: linear-gradient(90deg, var(--primary), var(--accent));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      font-size: 28px;
+      font-size: 24px;
     }
 
     .joke-display {
-      font-size: 18px;
-      margin: 20px 0;
-      min-height: 80px;
+      font-size: 16px;
+      margin: 15px 0;
+      min-height: 70px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: rgba(30, 30, 50, 0.5);
-      padding: 20px;
-      border-radius: 15px;
+      padding: 15px;
+      border-radius: 12px;
       border: 1px solid rgba(100, 100, 255, 0.2);
     }
 
     .comedy-controls {
       display: flex;
-      gap: 10px;
+      gap: 8px;
       justify-content: center;
-      margin: 20px 0;
+      margin: 15px 0;
       flex-wrap: wrap;
     }
 
     .comedy-controls button {
-      padding: 12px 20px;
+      padding: 10px 16px;
       border: none;
-      border-radius: 25px;
+      border-radius: 20px;
       cursor: pointer;
       font-weight: bold;
+      font-size: 13px;
       transition: all 0.3s ease;
     }
 
@@ -2348,31 +2400,31 @@
     }
 
     .comedy-controls button:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     }
 
     .joke-stats {
       display: flex;
       justify-content: space-around;
-      margin-top: 20px;
-      font-size: 14px;
+      margin-top: 15px;
+      font-size: 13px;
       opacity: 0.8;
     }
 
     .add-joke-section {
-      margin-top: 20px;
-      padding-top: 20px;
+      margin-top: 15px;
+      padding-top: 15px;
       border-top: 1px solid rgba(100, 100, 255, 0.2);
     }
 
     .add-joke-input {
       width: 100%;
-      padding: 12px;
+      padding: 10px;
       border: none;
-      border-radius: 10px;
-      margin: 10px 0;
-      font-size: 14px;
+      border-radius: 8px;
+      margin: 8px 0;
+      font-size: 13px;
       background: rgba(30, 30, 50, 0.7);
       color: var(--text);
       border: 1px solid rgba(100, 100, 255, 0.2);
@@ -2387,9 +2439,10 @@
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
+      padding: 8px 16px;
+      border-radius: 18px;
       cursor: pointer;
+      font-size: 13px;
       transition: all 0.3s ease;
     }
 
@@ -2400,14 +2453,14 @@
 
     .laughter-animation {
       position: absolute;
-      font-size: 24px;
+      font-size: 20px;
       animation: floatUp 2s ease-in-out;
       z-index: 10;
     }
 
     @keyframes floatUp {
       0% { transform: translateY(0); opacity: 1; }
-      100% { transform: translateY(-100px); opacity: 0; }
+      100% { transform: translateY(-80px); opacity: 0; }
     }
 
     /* Join Modal */
@@ -2427,10 +2480,10 @@
 
     .join-card {
       background: var(--card-bg);
-      padding: 30px;
+      padding: 25px;
       border-radius: 20px;
       width: 90%;
-      max-width: 400px;
+      max-width: 380px;
       border: 1px solid rgba(0, 204, 255, 0.2);
       box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
       position: relative;
@@ -2448,24 +2501,24 @@
     }
 
     .join-card h2 {
-      margin: 0 0 20px 0;
+      margin: 0 0 15px 0;
       text-align: center;
       background: linear-gradient(90deg, var(--primary), var(--accent));
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      font-size: 28px;
+      font-size: 24px;
     }
 
     .join-card input, .join-card select {
       width: 100%;
-      padding: 15px;
-      margin: 10px 0;
+      padding: 12px;
+      margin: 8px 0;
       border: 1px solid rgba(100, 100, 255, 0.3);
-      border-radius: 10px;
+      border-radius: 8px;
       background: rgba(30, 30, 50, 0.7);
       color: var(--text);
-      font-size: 16px;
+      font-size: 14px;
       transition: all 0.3s ease;
     }
 
@@ -2477,39 +2530,43 @@
 
     .join-card button {
       width: 100%;
-      padding: 15px;
+      padding: 12px;
       background: linear-gradient(135deg, var(--primary), var(--secondary));
       color: white;
       border: none;
-      border-radius: 10px;
-      margin-top: 15px;
-      font-size: 16px;
+      border-radius: 8px;
+      margin-top: 12px;
+      font-size: 15px;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.3s ease;
     }
 
     .join-card button:hover {
-      transform: translateY(-3px);
+      transform: translateY(-2px);
       box-shadow: 0 7px 20px rgba(0, 204, 255, 0.4);
     }
 
     /* Connection status indicator */
     .connection-status {
       position: fixed;
-      bottom: 80px;
+      bottom: 100px;
       right: 20px;
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 12px;
       color: var(--text-muted);
       z-index: 100;
+      background: rgba(0,0,0,0.3);
+      padding: 5px 10px;
+      border-radius: 20px;
+      backdrop-filter: blur(5px);
     }
 
     .status-indicator {
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       border-radius: 50%;
       background: var(--accent);
       animation: pulse 2s infinite;
@@ -2523,7 +2580,7 @@
 
     /* Scrollbar styling */
     ::-webkit-scrollbar {
-      width: 8px;
+      width: 6px;
     }
 
     ::-webkit-scrollbar-track {
@@ -2554,12 +2611,20 @@
       transform: translate(-50%, -50%);
       background: rgba(0, 255, 136, 0.9);
       color: #0a0a12;
-      padding: 20px 40px;
-      border-radius: 15px;
+      padding: 15px 30px;
+      border-radius: 12px;
       font-weight: bold;
       z-index: 3000;
       box-shadow: 0 0 30px rgba(0, 255, 136, 0.7);
       animation: confirmPulse 0.5s ease-in-out;
+    }
+
+    /* User Avatar fixed position */
+    #userAvatar {
+      position: fixed;
+      top: 15px;
+      right: 100px;
+      z-index: 1000;
     }
   </style>
 </head>
@@ -2651,7 +2716,10 @@
     <button class="animation-btn" onclick="openAnimationSelector()">✨ Change Animation</button>
   </div>
 
-  <!-- YOUR ORIGINAL 302px LOGO WITH ANIMATIONS - FIXED PATH -->
+  <!-- FIXED: User Avatar Display -->
+  <div class="user-avatar" id="userAvatar"></div>
+
+  <!-- ===== FIXED LOGO - MOVED TO TOP ===== -->
   <div class="logo-container">
     <!-- Orbital Particles -->
     <div class="logo-orbital">
@@ -2669,8 +2737,14 @@
       <div class="pulse-ring"></div>
     </div>
     
-    <!-- Your Logo - FIXED: Use absolute path to assets folder with fallback -->
-    <img class="big-logo" src="/assets/logo.png" alt="Chat Hook Logo" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAyIiBoZWlnaHQ9IjMwMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMGNmIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iNDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSJ3aGl0ZSIgZm9udC1mYW1pbHk9IkFyaWFsIj5DaGF0IEhvb2s8L3RleHQ+PC9zdmc+'">
+    <!-- YOUR LOGO - REPLACE WITH YOUR ACTUAL LOGO URL -->
+    <!-- <img class="big-logo" src="YOUR_LOGO_URL_HERE" alt="Chat Hook Logo" /> -->
+    
+    <!-- TEMPORARY TEXT LOGO - Shows "Chat Hook" with cool style -->
+    <div class="big-logo" style="font-size: 28px; font-weight: bold; color: #0cf; text-shadow: 0 0 15px #0cf, 0 0 30px #8a2be2; background: transparent; line-height: 1.2;">
+      CHAT<br>HOOK
+      <div style="font-size: 10px; color: var(--accent); text-shadow: 0 0 8px var(--accent); margin-top: 3px;">Where Every Chat Matters</div>
+    </div>
   </div>
 
   <!-- Comedy Club Button -->
@@ -2693,7 +2767,7 @@
     <button class="btn" type="submit">Send</button>
   </form>
 
-  <!-- Animation Selection Modal - UPDATED WITH SCROLLBAR -->
+  <!-- Animation Selection Modal -->
   <div id="animation-modal" class="animation-modal">
     <div class="animation-card">
       <div class="animation-content">
@@ -3110,6 +3184,7 @@
     const form = document.getElementById('send-container');
     const messageInput = document.getElementById('messageInp');
     const messageContainer = document.getElementById('message-container');
+    const userAvatar = document.getElementById('userAvatar');
 
     let currentUser = { name: '', gender: '', region: '', profilePicture: '' };
     let currentJoke = '';
@@ -3194,7 +3269,7 @@
         const animationId = requestAnimationFrame(animate);
         container._gridScan.animationId = animationId;
         
-        time += 0.016;
+        time += 0.016; // ~60fps
         
         // Update scan position
         scanPosition += scanSpeed * 0.016;
@@ -3567,7 +3642,7 @@
       // Create connections between nodes
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          if (Math.random() > 0.7) {
+          if (Math.random() > 0.7) { // Randomly connect nodes
             const connection = document.createElement('div');
             connection.className = 'data-connection';
             
@@ -3710,7 +3785,7 @@
     }
     
     function processJoinForm() {
-      // Original join form processing code - FIXED AVATAR
+      // Original join form processing code
       const joinModal = document.getElementById('join-modal');
       const joinForm = document.getElementById('join-form');
       const joinName = document.getElementById('join-name');
@@ -3726,13 +3801,24 @@
         return;
       }
 
-      // Generate profile picture (optional, not used for display)
+      // Update user avatar
+      userAvatar.textContent = name.charAt(0).toUpperCase();
+      userAvatar.style.display = 'flex';
+
+      currentUser = { 
+        name: name, 
+        gender: gender, 
+        region: region, 
+        profilePicture: '' 
+      };
+
+      // Generate profile picture based on name
       const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
       const color = colors[name.length % colors.length];
       const initial = name.charAt(0).toUpperCase();
       
-      // Create SVG avatar (optional - for backward compatibility)
-      const profilePicture = `data:image/svg+xml;base64,${btoa(`
+      // Create SVG profile picture
+      currentUser.profilePicture = `data:image/svg+xml;base64,${btoa(`
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -3745,13 +3831,6 @@
         </svg>
       `)}`;
 
-      currentUser = { 
-        name: name, 
-        gender: gender, 
-        region: region, 
-        profilePicture: profilePicture
-      };
-
       socket.emit('new-user-joined', currentUser);
       joinModal.style.display = 'none';
       appendSystemMessage(`You joined the chat as ${name}`);
@@ -3760,6 +3839,7 @@
     // Animation functions
     function openAnimationSelector() {
       document.getElementById('animation-modal').style.display = 'flex';
+      // Reset to current animation when opening
       selectedAnimation = currentAnimation;
       updateAnimationSelection();
     }
@@ -3770,6 +3850,7 @@
     }
 
     function updateAnimationSelection() {
+      // Update active state in selector
       document.querySelectorAll('.animation-option').forEach(option => {
         option.classList.remove('active');
         if (option.dataset.animation === selectedAnimation) {
@@ -3777,6 +3858,7 @@
         }
       });
       
+      // Special handling for custom name animation
       if (selectedAnimation === 'custom-name') {
         document.getElementById('custom-name-input-container').style.display = 'block';
       } else {
@@ -3856,19 +3938,23 @@
     }
 
     function changeAnimation(animationType) {
+      // Clean up previous animation if it's GridScan
       if (currentAnimation === 'grid-scan') {
         cleanupGridScanAnimation();
       }
       
+      // Hide all animations
       const allAnimations = document.querySelectorAll('.animation-container, .floating-shapes, .neon-grid, .liquid-rainbow, .cosmic-energy, .holographic-prism, .digital-rain, .particle-galaxy, .chat-hook-animation, .custom-name-animation, .john-cena-animation');
       allAnimations.forEach(anim => {
         anim.style.display = 'none';
       });
       
+      // Show selected animation
       document.getElementById(`${animationType}-animation`).style.display = 'block';
       
       currentAnimation = animationType;
       
+      // Initialize specific animations
       const animationInitializers = {
         'quantum-wave': createQuantumWave,
         'cyber-grid': createCyberGrid,
@@ -3918,6 +4004,7 @@
         column.style.animationDuration = `${Math.random() * 5 + 5}s`;
         column.style.animationDelay = `${Math.random() * 5}s`;
         
+        // Create multiple characters in the column
         for (let j = 0; j < 20; j++) {
           const char = document.createElement('div');
           char.textContent = characters.charAt(Math.floor(Math.random() * characters.length));
@@ -3931,9 +4018,11 @@
 
     function createGalaxyParticles() {
       const galaxyContainer = document.getElementById('galaxy-animation');
+      // Clear existing particles
       const existingParticles = galaxyContainer.querySelectorAll('.galaxy-particle');
       existingParticles.forEach(particle => particle.remove());
       
+      // Create new particles
       for (let i = 0; i < 100; i++) {
         const particle = document.createElement('div');
         particle.className = 'galaxy-particle';
@@ -3947,6 +4036,7 @@
       const container = document.getElementById('chat-hook-animation');
       container.innerHTML = '';
       
+      // Create floating logo particles
       for (let i = 0; i < 30; i++) {
         const particle = document.createElement('div');
         particle.className = 'logo-particle';
@@ -3957,6 +4047,7 @@
         container.appendChild(particle);
       }
       
+      // Create hook elements
       for (let i = 0; i < 5; i++) {
         const hook = document.createElement('div');
         hook.className = 'hook-element';
@@ -3972,6 +4063,7 @@
       const gridContainer = document.getElementById('neon-grid-animation');
       gridContainer.innerHTML = '';
       
+      // Create horizontal grid lines
       for (let i = 0; i < 20; i++) {
         const line = document.createElement('div');
         line.className = 'grid-line horizontal';
@@ -3980,6 +4072,7 @@
         gridContainer.appendChild(line);
       }
       
+      // Create vertical grid lines
       for (let i = 0; i < 20; i++) {
         const line = document.createElement('div');
         line.className = 'grid-line vertical';
@@ -3993,6 +4086,7 @@
       const energyContainer = document.getElementById('cosmic-energy-animation');
       energyContainer.innerHTML = '';
       
+      // Create energy waves
       for (let i = 0; i < 4; i++) {
         const wave = document.createElement('div');
         wave.className = 'energy-wave';
@@ -4004,6 +4098,7 @@
       const prismContainer = document.getElementById('holographic-prism-animation');
       prismContainer.innerHTML = '';
       
+      // Create prism beams
       for (let i = 0; i < 8; i++) {
         const beam = document.createElement('div');
         beam.className = 'prism-beam';
@@ -4031,6 +4126,7 @@
       const container = document.getElementById('custom-name-animation');
       container.innerHTML = '';
       
+      // Create name particles
       for (let i = 0; i < name.length * 5; i++) {
         const charIndex = i % name.length;
         const particle = document.createElement('div');
@@ -4044,6 +4140,7 @@
         container.appendChild(particle);
       }
       
+      // Create trails
       for (let i = 0; i < 20; i++) {
         const trail = document.createElement('div');
         trail.className = 'name-trail';
@@ -4053,6 +4150,7 @@
         container.appendChild(trail);
       }
       
+      // Create echo effect
       for (let i = 0; i < 3; i++) {
         const echo = document.createElement('div');
         echo.className = 'name-echo';
@@ -4071,26 +4169,28 @@
       });
     });
 
-    // ✅ FIXED: appendMessage function - SIMPLE, CLEAN, NO SYNTAX ERRORS
+    // FIXED: Append message function with proper avatar handling
     const appendMessage = (message, userData, isOwn = false) => {
       const messageElement = document.createElement('div');
       messageElement.className = `message ${isOwn ? 'own' : 'other'}`;
       
-      // Get first letter of username (uppercase)
-      const firstLetter = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
+      // Get initial for avatar
+      const initial = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
+      const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
+      const color = userData.name ? colors[userData.name.length % colors.length] : colors[0];
       
-      // Simple avatar HTML - CSS div with first letter
-      const avatarHTML = `<div class="user-avatar" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-weight: bold; font-size: 16px;">${firstLetter}</div>`;
+      // Create avatar HTML
+      const avatarHtml = `<div class="user-avatar" style="background: linear-gradient(135deg, ${color}, ${color}99); display: flex; align-items: center; justify-content: center;">${initial}</div>`;
       
       messageElement.innerHTML = `
         <div class="message-bubble">
           <div class="message-user">
-            ${avatarHTML}
+            ${avatarHtml}
             <div class="user-name">${userData.name || 'Unknown'}</div>
           </div>
           <div class="message-content">${message}</div>
           <div class="message-meta">
-            <span>${userData.gender || ''} • ${userData.region || ''}</span>
+            <span>${userData.gender || 'Unknown'} • ${userData.region || 'Unknown'}</span>
             <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
           </div>
         </div>
@@ -4105,7 +4205,7 @@
       messageElement.className = 'message';
       messageElement.innerHTML = `
         <div style="text-align: center; width: 100%;">
-          <div style="display: inline-block; background: rgba(100, 100, 255, 0.2); color: var(--text-muted); padding: 8px 16px; border-radius: 15px; font-size: 14px;">
+          <div style="display: inline-block; background: rgba(100, 100, 255, 0.2); color: var(--text-muted); padding: 6px 12px; border-radius: 12px; font-size: 12px;">
             ${message}
           </div>
         </div>

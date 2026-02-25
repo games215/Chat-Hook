@@ -18,7 +18,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
 // ===================================================
-// ✅ GOOGLE LOGIN FUNCTION
+// ✅ GOOGLE LOGIN FUNCTION (FIXED)
 // ===================================================
 
 function googleLogin() {
@@ -37,10 +37,37 @@ function googleLogin() {
         joinName.value = user.displayName || user.email.split('@')[0];
       }
 
-      // Tumhara socket yaha username le sakta hai
-      if (socket && socket.connected) {
-        socket.emit("user-joined", user.displayName || user.email.split('@')[0]);
+      // ✅ FIXED: Agar socket nahi hai to initialize karo
+      if (!socket) {
+        initializeSocket();
       }
+
+      // ✅ FIXED: Delay se socket emit karo
+      setTimeout(() => {
+        socket.emit("new-user-joined", {
+          name: user.displayName || user.email.split('@')[0],
+          gender: "Not set",
+          region: "Google User",
+          profilePicture: user.photoURL || ""
+        });
+
+        // ✅ Update current user
+        currentUser = {
+          name: user.displayName || user.email.split('@')[0],
+          gender: "Not set",
+          region: "Google User",
+          profilePicture: user.photoURL || "",
+          socketId: socket.id
+        };
+
+        // ✅ Update avatar
+        updateUserAvatar(currentUser.name, currentUser.profilePicture);
+
+        // ✅ Hide join modal
+        if (joinModal) {
+          joinModal.style.display = 'none';
+        }
+      }, 800);
 
       // Show welcome message
       showConfirmationMessage(`Welcome ${user.displayName || user.email.split('@')[0]}!`, 'success');
@@ -74,68 +101,6 @@ function googleLogin() {
 }
 
 // ===================================================
-// ✅ ENSURE USER EXISTS IN DATABASE (Supabase function)
-// ===================================================
-
-/**
- * Ensure user exists in database
- * @param {object} authUser - Firebase auth user object
- */
-async function ensureUserInDatabase(authUser) {
-  // This function is for Supabase - keep as is
-  // Check if user already exists
-  const { data: existingUser } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", authUser.uid)
-    .single();
-
-  if (!existingUser) {
-    // Generate username from email
-    const username = authUser.email.split("@")[0];
-    const uniqueUsername = await generateUniqueUsername(username);
-
-    await supabase.from("users").insert([
-      {
-        id: authUser.uid,
-        username: uniqueUsername,
-        name: authUser.displayName || "",
-        avatar_url: authUser.photoURL || "",
-        country: "",
-        gender: ""
-      }
-    ]);
-
-    console.log("✅ User added to users table");
-  }
-}
-
-/**
- * Generate unique username for Supabase
- * @param {string} baseUsername - Base username from email
- * @returns {string} Unique username
- */
-async function generateUniqueUsername(baseUsername) {
-  let username = baseUsername;
-  let counter = 1;
-
-  while (true) {
-    const { data } = await supabase
-      .from("users")
-      .select("username")
-      .eq("username", username)
-      .single();
-
-    if (!data) break;
-
-    username = `${baseUsername}${counter}`;
-    counter++;
-  }
-
-  return username;
-}
-
-// ===================================================
 // ✅ FIREBASE AUTH STATE CHANGE LISTENER
 // ===================================================
 
@@ -159,15 +124,6 @@ auth.onAuthStateChanged(async (user) => {
     if (joinName) {
       joinName.value = user.displayName || user.email.split('@')[0];
     }
-
-    // You can add additional logic here
-    // For example, automatically join the chat
-    setTimeout(() => {
-      if (joinModal && joinModal.style.display !== 'none') {
-        // Auto-submit join form if you want
-        // joinForm.dispatchEvent(new Event('submit'));
-      }
-    }, 1000);
   } else {
     console.log("❌ User is logged out");
     localStorage.removeItem("chatHookUser");
@@ -453,17 +409,6 @@ function updateConnectionStatus(connected) {
       statusText.textContent = 'Disconnected';
       statusText.style.color = '#ff6b6b';
     }
-  }
-}
-
-/**
- * Update online users count
- * @param {number} count - Number of online users
- */
-function updateOnlineUsersCount(count) {
-  const onlineCountElement = document.querySelector('.online-count');
-  if (onlineCountElement) {
-    onlineCountElement.textContent = `${count} online`;
   }
 }
 

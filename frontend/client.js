@@ -1,6 +1,181 @@
 // ===================================================
+// ✅ FIREBASE CONFIGURATION - ADD YOUR API KEY HERE
+// ===================================================
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY", // ← अपना API Key यहाँ paste करें
+  authDomain: "chat-hook-a64d5.firebaseapp.com",
+  projectId: "chat-hook-a64d5",
+  storageBucket: "chat-hook-a64d5.firebasestorage.app",
+  messagingSenderId: "206101224749",
+  appId: "1:206101224749:web:6a1ebe22258dfc0d47c7a4"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+
+// ===================================================
+// ✅ GOOGLE LOGIN FUNCTION
+// ===================================================
+
+function googleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  auth.signInWithPopup(provider)
+    .then((result) => {
+      const user = result.user;
+
+      console.log("✅ Logged in:", user.displayName);
+      console.log("📧 Email:", user.email);
+      console.log("🖼️ Photo:", user.photoURL);
+
+      // Auto-fill join form with Google user data
+      if (joinName) {
+        joinName.value = user.displayName || user.email.split('@')[0];
+      }
+
+      // Tumhara socket yaha username le sakta hai
+      if (socket && socket.connected) {
+        socket.emit("user-joined", user.displayName || user.email.split('@')[0]);
+      }
+
+      // Show welcome message
+      showConfirmationMessage(`Welcome ${user.displayName || user.email.split('@')[0]}!`, 'success');
+
+      // Store user in localStorage
+      localStorage.setItem("chatHookUser", JSON.stringify({
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      }));
+
+      alert("Welcome " + (user.displayName || user.email.split('@')[0]));
+    })
+    .catch((error) => {
+      console.error("❌ Google Login Error:", error);
+      
+      let errorMessage = "Google login failed! ";
+      if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage += "Popup was closed before completing login.";
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage += "Only one popup request allowed at a time.";
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage += "Network error. Please check your connection.";
+      } else {
+        errorMessage += error.message;
+      }
+      
+      showConfirmationMessage(errorMessage, 'error');
+    });
+}
+
+// ===================================================
+// ✅ ENSURE USER EXISTS IN DATABASE (Supabase function)
+// ===================================================
+
+/**
+ * Ensure user exists in database
+ * @param {object} authUser - Firebase auth user object
+ */
+async function ensureUserInDatabase(authUser) {
+  // This function is for Supabase - keep as is
+  // Check if user already exists
+  const { data: existingUser } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", authUser.uid)
+    .single();
+
+  if (!existingUser) {
+    // Generate username from email
+    const username = authUser.email.split("@")[0];
+    const uniqueUsername = await generateUniqueUsername(username);
+
+    await supabase.from("users").insert([
+      {
+        id: authUser.uid,
+        username: uniqueUsername,
+        name: authUser.displayName || "",
+        avatar_url: authUser.photoURL || "",
+        country: "",
+        gender: ""
+      }
+    ]);
+
+    console.log("✅ User added to users table");
+  }
+}
+
+/**
+ * Generate unique username for Supabase
+ * @param {string} baseUsername - Base username from email
+ * @returns {string} Unique username
+ */
+async function generateUniqueUsername(baseUsername) {
+  let username = baseUsername;
+  let counter = 1;
+
+  while (true) {
+    const { data } = await supabase
+      .from("users")
+      .select("username")
+      .eq("username", username)
+      .single();
+
+    if (!data) break;
+
+    username = `${baseUsername}${counter}`;
+    counter++;
+  }
+
+  return username;
+}
+
+// ===================================================
+// ✅ FIREBASE AUTH STATE CHANGE LISTENER
+// ===================================================
+
+// Listen for auth state changes
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    console.log("✅ User is logged in:", user.email);
+
+    // Store user in localStorage
+    localStorage.setItem(
+      "chatHookUser",
+      JSON.stringify({
+        uid: user.uid,
+        name: user.displayName,
+        email: user.email,
+        photoURL: user.photoURL
+      })
+    );
+
+    // Auto-fill join form with Google user data
+    if (joinName) {
+      joinName.value = user.displayName || user.email.split('@')[0];
+    }
+
+    // You can add additional logic here
+    // For example, automatically join the chat
+    setTimeout(() => {
+      if (joinModal && joinModal.style.display !== 'none') {
+        // Auto-submit join form if you want
+        // joinForm.dispatchEvent(new Event('submit'));
+      }
+    }, 1000);
+  } else {
+    console.log("❌ User is logged out");
+    localStorage.removeItem("chatHookUser");
+  }
+});
+
+// ===================================================
 // ✅ CHAT HOOK - REAL-TIME GLOBAL CHAT APPLICATION
-// ✅ FULLY COMPATIBLE WITH RENDER.COM
 // ===================================================
 
 // ✅ **Socket.IO Connection for Render**
@@ -69,15 +244,28 @@ const appendMessage = (message, userData, isOwn = false) => {
     minute: '2-digit' 
   });
   
+  // Get initial for avatar if no profile picture
+  const initial = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
+  
+  // Create avatar HTML
+  let avatarHtml;
+  if (userData.profilePicture) {
+    avatarHtml = `<img class="user-avatar" src="${userData.profilePicture}" alt="${userData.name}">`;
+  } else {
+    const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
+    const color = userData.name ? colors[userData.name.length % colors.length] : colors[0];
+    avatarHtml = `<div class="user-avatar" style="background: linear-gradient(135deg, ${color}, ${color}99); display: flex; align-items: center; justify-content: center;">${initial}</div>`;
+  }
+  
   messageElement.innerHTML = `
     <div class="message-bubble">
       <div class="message-user">
-        <img class="user-avatar" src="${userData.profilePicture}" alt="${userData.name}">
-        <div class="user-name">${userData.name}</div>
+        ${avatarHtml}
+        <div class="user-name">${userData.name || 'Unknown'}</div>
       </div>
       <div class="message-content">${message}</div>
       <div class="message-meta">
-        <span>${userData.gender} • ${userData.region}</span>
+        <span>${userData.gender || 'Unknown'} • ${userData.region || 'Unknown'}</span>
         <span>${time}</span>
       </div>
     </div>
@@ -285,6 +473,12 @@ function updateOnlineUsersCount(count) {
  * @param {string} type - Message type (success/error)
  */
 function showConfirmationMessage(message, type = 'success') {
+  // Remove any existing confirmation
+  const existing = document.querySelector('.confirmation-message');
+  if (existing) {
+    existing.remove();
+  }
+  
   const confirmation = document.createElement('div');
   confirmation.className = 'confirmation-message';
   confirmation.textContent = message;
@@ -302,6 +496,7 @@ function showConfirmationMessage(message, type = 'success') {
   confirmation.style.fontWeight = 'bold';
   confirmation.style.fontSize = '14px';
   confirmation.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  confirmation.style.animation = 'slideIn 0.3s ease';
   
   document.body.appendChild(confirmation);
   
@@ -313,8 +508,24 @@ function showConfirmationMessage(message, type = 'success') {
         confirmation.remove();
       }
     }, 500);
-  }, 2000);
+  }, 3000);
 }
+
+// Add CSS animation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+document.head.appendChild(style);
 
 // ===================================================
 // ✅ TYPING INDICATORS
@@ -424,6 +635,9 @@ if (joinForm) {
       socketId: ''
     };
 
+    // Update user avatar in UI
+    updateUserAvatar(name, profilePicture);
+
     // Initialize socket if not already
     if (!socket) {
       initializeSocket();
@@ -451,6 +665,22 @@ if (joinForm) {
   });
 }
 
+/**
+ * Update user avatar in the UI
+ * @param {string} name - User name
+ * @param {string} imageData - Profile picture data
+ */
+function updateUserAvatar(name, imageData) {
+  const userAvatar = document.getElementById('userAvatar');
+  if (userAvatar) {
+    if (imageData) {
+      userAvatar.innerHTML = `<img src="${imageData}" alt="${name}">`;
+    } else {
+      userAvatar.innerHTML = name.charAt(0).toUpperCase();
+    }
+  }
+}
+
 // ===================================================
 // ✅ NOTIFICATION PERMISSION
 // ===================================================
@@ -476,6 +706,31 @@ window.addEventListener('load', () => {
   
   // Initialize socket connection
   initializeSocket();
+  
+  // Check for existing session in localStorage
+  const storedUser = localStorage.getItem("chatHookUser");
+  if (storedUser) {
+    try {
+      const user = JSON.parse(storedUser);
+      console.log("Found existing session for:", user.email);
+      
+      // Auto-fill join form
+      if (joinName) {
+        joinName.value = user.name || user.email.split('@')[0];
+      }
+    } catch (e) {
+      console.error("Error parsing stored user:", e);
+    }
+  }
+  
+  // Check if user is already logged in via Firebase
+  const currentFirebaseUser = auth.currentUser;
+  if (currentFirebaseUser) {
+    console.log("User already logged in via Firebase:", currentFirebaseUser.email);
+    if (joinName) {
+      joinName.value = currentFirebaseUser.displayName || currentFirebaseUser.email.split('@')[0];
+    }
+  }
   
   // Show join modal after short delay
   setTimeout(() => {
@@ -511,3 +766,12 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 });
+
+// ===================================================
+// ✅ EXPOSE FUNCTIONS TO GLOBAL SCOPE
+// ===================================================
+
+// Make functions available globally for HTML onclick handlers
+window.googleLogin = googleLogin;
+window.signInWithGoogle = googleLogin; // Alias for compatibility
+window.showConfirmationMessage = showConfirmationMessage;

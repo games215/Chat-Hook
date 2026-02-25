@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat Hook - Chat</title>
+</head>
+<body>
+
+<h1>Welcome to Chat Hook</h1>
+
+<button onclick="logout()">Logout</button>
+
+<script type="module">
+
+import { supabase } from './supabase.js'
+
+// Protect page
+const { data } = await supabase.auth.getSession()
+
+if (!data.session) {
+  window.location.href = "/index.html"
+}
+
+// Logout
+window.logout = async function () {
+  await supabase.auth.signOut()
+  window.location.href = "/index.html"
+}
+
+</script>
+
+</body>
+</html>

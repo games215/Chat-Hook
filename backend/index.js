@@ -232,7 +232,7 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log(`📡 Port: ${PORT}`);
   console.log(`🌐 URL: https://chat-hook-1.onrender.com`);
   console.log(`📁 Frontend: ${frontendPath}`);
-  console.log("=".repeat(50));
+  console.log("=".repeat(50)); 
   console.log("✅ Endpoints:");
   console.log("   /              - Chat application");
   console.log("   /health        - Health check");

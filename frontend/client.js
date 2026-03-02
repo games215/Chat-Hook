@@ -1,9 +1,10 @@
 // ===================================================
 // ✅ FIREBASE IMPORTS AND CONFIGURATION
 // ===================================================
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -16,14 +17,14 @@ const firebaseConfig = {
   measurementId: "G-YLYXXKC651"
 };
 
-// Initialize Firebase (SIRF EK BAAR)
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 // ===================================================
-// ✅ GOOGLE LOGIN FUNCTION (FIXED)
+// ✅ GOOGLE LOGIN FUNCTION
 // ===================================================
 
 function googleLogin() {
@@ -40,12 +41,12 @@ function googleLogin() {
         joinName.value = user.displayName || user.email.split('@')[0];
       }
 
-      // ✅ FIXED: Agar socket nahi hai to initialize karo
+      // ✅ Agar socket nahi hai to initialize karo
       if (!socket) {
         initializeSocket();
       }
 
-      // ✅ FIXED: Delay se socket emit karo
+      // ✅ Delay se socket emit karo
       setTimeout(() => {
         socket.emit("new-user-joined", {
           name: user.displayName || user.email.split('@')[0],
@@ -82,8 +83,6 @@ function googleLogin() {
         email: user.email,
         photoURL: user.photoURL
       }));
-
-      alert("Welcome " + (user.displayName || user.email.split('@')[0]));
     })
     .catch((error) => {
       console.error("❌ Google Login Error:", error);
@@ -103,12 +102,23 @@ function googleLogin() {
     });
 }
 
+// ✅ Google Button Event Listener
+document.addEventListener("DOMContentLoaded", () => {
+  const googleBtn = document.getElementById("googleBtn");
+  if (googleBtn) {
+    googleBtn.addEventListener("click", googleLogin);
+    console.log("✅ Google button connected");
+  } else {
+    console.error("❌ Google button not found in DOM");
+  }
+});
+
 // ===================================================
 // ✅ FIREBASE AUTH STATE CHANGE LISTENER
 // ===================================================
 
 // Listen for auth state changes
-auth.onAuthStateChanged(async (user) => {
+onAuthStateChanged(auth, (user) => {
   if (user) {
     console.log("✅ User is logged in:", user.email);
 
@@ -721,5 +731,5 @@ window.addEventListener('unhandledrejection', (event) => {
 
 // Make functions available globally for HTML onclick handlers
 window.googleLogin = googleLogin;
-window.signInWithGoogle = googleLogin; // Alias for compatibility
+window.signInWithGoogle = googleLogin;
 window.showConfirmationMessage = showConfirmationMessage;

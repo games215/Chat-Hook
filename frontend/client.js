@@ -1,30 +1,33 @@
 // ===================================================
-// ✅ FIREBASE CONFIGURATION - ADD YOUR API KEY HERE
+// ✅ FIREBASE IMPORTS AND CONFIGURATION
 // ===================================================
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
-// Firebase Config
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY", // ← अपना API Key यहाँ paste करें
-  authDomain: "chat-hook-a64d5.firebaseapp.com",
-  projectId: "chat-hook-a64d5",
-  storageBucket: "chat-hook-a64d5.firebasestorage.app",
-  messagingSenderId: "206101224749",
-  appId: "1:206101224749:web:6a1ebe22258dfc0d47c7a4"
+  apiKey: "AIzaSyCa1c_8GeK8WKQh8bcl67t0RLzHCaHcuK4",
+  authDomain: "chat-hook-live.firebaseapp.com",
+  projectId: "chat-hook-live",
+  storageBucket: "chat-hook-live.firebasestorage.app",
+  messagingSenderId: "1050939084148",
+  appId: "1:1050939084148:web:33b5e7d2f50fea32d2b021",
+  measurementId: "G-YLYXXKC651"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-
-const auth = firebase.auth();
+// Initialize Firebase (SIRF EK BAAR)
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
 // ===================================================
 // ✅ GOOGLE LOGIN FUNCTION (FIXED)
 // ===================================================
 
 function googleLogin() {
-  const provider = new firebase.auth.GoogleAuthProvider();
-
-  auth.signInWithPopup(provider)
+  signInWithPopup(auth, provider)
     .then((result) => {
       const user = result.user;
 

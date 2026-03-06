@@ -1,735 +1,637 @@
-// ===================================================
-// ✅ FIREBASE IMPORTS AND CONFIGURATION
-// ===================================================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+// client.js - Frontend logic for Chat Hook with Supabase Google Login
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCa1c_8GeK8WKQh8bcl67t0RLzHCaHcuK4",
-  authDomain: "chat-hook-live.firebaseapp.com",
-  projectId: "chat-hook-live",
-  storageBucket: "chat-hook-live.firebasestorage.app",
-  messagingSenderId: "1050939084148",
-  appId: "1:1050939084148:web:33b5e7d2f50fea32d2b021",
-  measurementId: "G-YLYXXKC651"
-};
+// ===== SUPABASE CONFIGURATION =====
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+// Supabase configuration
+const supabaseUrl = 'https://your-project-id.supabase.co'; // ✅ Replace with your Supabase URL
+const supabaseAnonKey = 'your-anon-key'; // ✅ Replace with your Supabase anon key
 
-// ===================================================
-// ✅ GOOGLE LOGIN FUNCTION
-// ===================================================
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-function googleLogin() {
-  signInWithPopup(auth, provider)
-    .then((result) => {
-      const user = result.user;
+// Socket.io connection
+const socket = io();
 
-      console.log("✅ Logged in:", user.displayName);
-      console.log("📧 Email:", user.email);
-      console.log("🖼️ Photo:", user.photoURL);
-
-      // Auto-fill join form with Google user data
-      if (joinName) {
-        joinName.value = user.displayName || user.email.split('@')[0];
-      }
-
-      // ✅ Agar socket nahi hai to initialize karo
-      if (!socket) {
-        initializeSocket();
-      }
-
-      // ✅ Delay se socket emit karo
-      setTimeout(() => {
-        socket.emit("new-user-joined", {
-          name: user.displayName || user.email.split('@')[0],
-          gender: "Not set",
-          region: "Google User",
-          profilePicture: user.photoURL || ""
-        });
-
-        // ✅ Update current user
-        currentUser = {
-          name: user.displayName || user.email.split('@')[0],
-          gender: "Not set",
-          region: "Google User",
-          profilePicture: user.photoURL || "",
-          socketId: socket.id
-        };
-
-        // ✅ Update avatar
-        updateUserAvatar(currentUser.name, currentUser.profilePicture);
-
-        // ✅ Hide join modal
-        if (joinModal) {
-          joinModal.style.display = 'none';
-        }
-      }, 800);
-
-      // Show welcome message
-      showConfirmationMessage(`Welcome ${user.displayName || user.email.split('@')[0]}!`, 'success');
-
-      // Store user in localStorage
-      localStorage.setItem("chatHookUser", JSON.stringify({
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL
-      }));
-    })
-    .catch((error) => {
-      console.error("❌ Google Login Error:", error);
-      
-      let errorMessage = "Google login failed! ";
-      if (error.code === 'auth/popup-closed-by-user') {
-        errorMessage += "Popup was closed before completing login.";
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        errorMessage += "Only one popup request allowed at a time.";
-      } else if (error.code === 'auth/network-request-failed') {
-        errorMessage += "Network error. Please check your connection.";
-      } else {
-        errorMessage += error.message;
-      }
-      
-      showConfirmationMessage(errorMessage, 'error');
-    });
-}
-
-// ✅ Google Button Event Listener
-document.addEventListener("DOMContentLoaded", () => {
-  const googleBtn = document.getElementById("googleBtn");
-  if (googleBtn) {
-    googleBtn.addEventListener("click", googleLogin);
-    console.log("✅ Google button connected");
-  } else {
-    console.error("❌ Google button not found in DOM");
-  }
-});
-
-// ===================================================
-// ✅ FIREBASE AUTH STATE CHANGE LISTENER
-// ===================================================
-
-// Listen for auth state changes
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    console.log("✅ User is logged in:", user.email);
-
-    // Store user in localStorage
-    localStorage.setItem(
-      "chatHookUser",
-      JSON.stringify({
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        photoURL: user.photoURL
-      })
-    );
-
-    // Auto-fill join form with Google user data
-    if (joinName) {
-      joinName.value = user.displayName || user.email.split('@')[0];
-    }
-  } else {
-    console.log("❌ User is logged out");
-    localStorage.removeItem("chatHookUser");
-  }
-});
-
-// ===================================================
-// ✅ CHAT HOOK - REAL-TIME GLOBAL CHAT APPLICATION
-// ===================================================
-
-// ✅ **Socket.IO Connection for Render**
-let socket;
-let connectionAttempts = 0;
-const MAX_CONNECTION_ATTEMPTS = 5;
-
-// ✅ **YOUR RENDER URL - https://chat-hook-1.onrender.com**
-const RENDER_URL = 'https://chat-hook-1.onrender.com';
-
-// ✅ **Initialize Socket Connection**
-function initializeSocket() {
-  console.log('🚀 Connecting to server:', RENDER_URL);
-  
-  socket = io(RENDER_URL, {
-    transports: ["websocket", "polling"],
-    reconnection: true,
-    reconnectionAttempts: 5,
-    reconnectionDelay: 1000,
-    timeout: 20000,
-    path: '/socket.io/'
-  });
-
-  setupSocketEvents();
-}
-
-// ===================================================
-// ✅ DOM ELEMENTS
-// ===================================================
-const form = document.getElementById('send-container');
-const messageInput = document.getElementById('messageInp');
+// DOM Elements
 const messageContainer = document.getElementById('message-container');
+const messageForm = document.getElementById('send-container');
+const messageInput = document.getElementById('messageInp');
+const onlineUsersContainer = document.getElementById('onlineUsersContainer');
+const userAvatar = document.getElementById('userAvatar');
 const joinModal = document.getElementById('join-modal');
 const joinForm = document.getElementById('join-form');
-const joinName = document.getElementById('join-name');
-const joinGender = document.getElementById('join-gender');
-const joinRegion = document.getElementById('join-region');
+const profilePanel = document.getElementById('profilePanel');
+const profileUsername = document.getElementById('profileUsername');
+const profileCountry = document.getElementById('profileCountry');
+const profilePicPreview = document.getElementById('profilePicPreview');
+const profilePicInitial = document.getElementById('profilePicInitial');
+const userProfileModal = document.getElementById('userProfileModal');
+const modalUsername = document.getElementById('modalUsername');
+const modalCountry = document.getElementById('modalCountry');
+const modalAvatar = document.getElementById('modalAvatar');
+const googleBtn = document.getElementById('googleBtn');
 
-// ===================================================
-// ✅ USER DATA STORAGE
-// ===================================================
-let currentUser = {
-  name: '',
-  gender: '',
-  region: '',
-  profilePicture: '',
-  socketId: ''
-};
+// Current user data
+let currentUser = null;
+let selectedUserId = null;
+let jokeCount = 0;
 
-// ===================================================
-// ✅ MESSAGE DISPLAY FUNCTIONS
-// ===================================================
+// ===== CHECK SESSION ON PAGE LOAD =====
+document.addEventListener("DOMContentLoaded", async () => {
+  const { data: { session } } = await supabase.auth.getSession();
 
-/**
- * Append a message to the chat container
- * @param {string} message - The message text
- * @param {object} userData - User information
- * @param {boolean} isOwn - Whether it's user's own message
- */
-const appendMessage = (message, userData, isOwn = false) => {
-  const messageElement = document.createElement('div');
-  messageElement.className = `message ${isOwn ? 'own' : 'other'}`;
-  
-  const time = new Date().toLocaleTimeString([], { 
-    hour: '2-digit', 
-    minute: '2-digit' 
-  });
-  
-  // Get initial for avatar if no profile picture
-  const initial = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
-  
-  // Create avatar HTML
-  let avatarHtml;
-  if (userData.profilePicture) {
-    avatarHtml = `<img class="user-avatar" src="${userData.profilePicture}" alt="${userData.name}">`;
+  if (session) {
+    // User is already logged in with Google
+    checkUserProfile(session.user);
   } else {
-    const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
-    const color = userData.name ? colors[userData.name.length % colors.length] : colors[0];
-    avatarHtml = `<div class="user-avatar" style="background: linear-gradient(135deg, ${color}, ${color}99); display: flex; align-items: center; justify-content: center;">${initial}</div>`;
+    // Check local storage for manual login
+    loadUserFromStorage();
+  }
+});
+
+// ===== CHECK USER PROFILE FROM SUPABASE =====
+async function checkUserProfile(supabaseUser) {
+  // Check if user exists in localStorage
+  const savedUser = localStorage.getItem('chatUser');
+  let userData = savedUser ? JSON.parse(savedUser) : null;
+  
+  if (userData && userData.email === supabaseUser.email) {
+    // Use existing profile
+    currentUser = {
+      ...userData,
+      id: socket.id,
+      email: supabaseUser.email
+    };
+  } else {
+    // Create new user from Google data
+    currentUser = {
+      id: socket.id,
+      name: supabaseUser.user_metadata.full_name || supabaseUser.email.split('@')[0],
+      email: supabaseUser.email,
+      gender: 'Other',
+      country: 'United States',
+      profilePic: supabaseUser.user_metadata.avatar_url || null,
+      joinDate: new Date().getTime(),
+      isGoogleUser: true,
+      lastLogin: new Date().toISOString()
+    };
+    
+    localStorage.setItem('chatUser', JSON.stringify(currentUser));
+    localStorage.setItem('lastNameChange', new Date().getTime().toString());
   }
   
-  messageElement.innerHTML = `
-    <div class="message-bubble">
-      <div class="message-user">
-        ${avatarHtml}
-        <div class="user-name">${userData.name || 'Unknown'}</div>
-      </div>
-      <div class="message-content">${message}</div>
-      <div class="message-meta">
-        <span>${userData.gender || 'Unknown'} • ${userData.region || 'Unknown'}</span>
-        <span>${time}</span>
-      </div>
-    </div>
-  `;
+  updateUserAvatar();
+  profileUsername.value = currentUser.name || '';
+  profileCountry.value = currentUser.country || 'India';
+  if (currentUser.profilePic) {
+    showProfilePic(currentUser.profilePic);
+  }
   
-  messageContainer.appendChild(messageElement);
-  messageContainer.scrollTop = messageContainer.scrollHeight;
+  socket.emit('user-joined', currentUser);
+  joinModal.style.display = 'none';
+  showSuccessAnimation(`Welcome back ${currentUser.name}!`);
+}
+
+// ===== GOOGLE LOGIN WITH SUPABASE =====
+if (googleBtn) {
+  googleBtn.addEventListener('click', async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            prompt: 'select_account',
+            access_type: 'offline',
+            hd: '' // Allows any Google account
+          },
+          redirectTo: window.location.origin // Redirect back to your app
+        }
+      });
+
+      if (error) {
+        console.error('Supabase Google Login Error:', error);
+        alert('Google login failed: ' + error.message);
+      }
+      
+      // Note: The OAuth redirect will happen automatically
+      // After redirect, the page will reload and DOMContentLoaded will handle the session
+      
+    } catch (error) {
+      console.error('Google Sign-In Error:', error);
+      alert('Google Sign-In failed: ' + error.message);
+    }
+  });
+}
+
+// Handle OAuth redirect (when user comes back from Google)
+async function handleAuthRedirect() {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (error) {
+    console.error('Error getting session:', error);
+    return;
+  }
+  
+  if (session) {
+    checkUserProfile(session.user);
+  }
+}
+
+// Check for OAuth redirect on load
+handleAuthRedirect();
+
+// Initialize user from localStorage (for manual login)
+function loadUserFromStorage() {
+    const savedUser = localStorage.getItem('chatUser');
+    if (savedUser) {
+        try {
+            currentUser = JSON.parse(savedUser);
+            // Ensure user has an ID
+            currentUser.id = socket.id;
+            
+            updateUserAvatar();
+            profileUsername.value = currentUser.name || '';
+            profileCountry.value = currentUser.country || 'India';
+            if (currentUser.profilePic) {
+                showProfilePic(currentUser.profilePic);
+            }
+            socket.emit('user-joined', currentUser);
+            joinModal.style.display = 'none';
+        } catch (e) {
+            console.error('Error loading user:', e);
+            showJoinModal();
+        }
+    } else {
+        showJoinModal();
+    }
+}
+
+// Show join modal
+function showJoinModal() {
+    joinModal.style.display = 'flex';
+}
+
+// Join form submission
+joinForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('join-name').value.trim();
+    const gender = document.getElementById('join-gender').value;
+    const region = document.getElementById('join-region').value;
+    
+    if (!name || !gender || !region) {
+        alert('Please fill all fields');
+        return;
+    }
+    
+    // Check if name change is allowed (first time or after 30 days)
+    const lastChange = localStorage.getItem('lastNameChange');
+    const now = new Date().getTime();
+    
+    if (lastChange && (now - parseInt(lastChange)) < 30 * 24 * 60 * 60 * 1000) {
+        const daysLeft = Math.ceil((30 * 24 * 60 * 60 * 1000 - (now - parseInt(lastChange))) / (24 * 60 * 60 * 1000));
+        alert(`You can change your username again in ${daysLeft} days. Using your previous username.`);
+        
+        // Load previous user
+        const savedUser = localStorage.getItem('chatUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+        }
+    } else {
+        // Create new user
+        currentUser = {
+            id: socket.id,
+            name: name,
+            gender: gender,
+            country: region,
+            profilePic: null,
+            joinDate: now,
+            isManual: true
+        };
+        
+        localStorage.setItem('lastNameChange', now.toString());
+        localStorage.setItem('chatUser', JSON.stringify(currentUser));
+    }
+    
+    updateUserAvatar();
+    socket.emit('user-joined', currentUser);
+    joinModal.style.display = 'none';
+    
+    // Show success animation
+    showSuccessAnimation('Welcome to Chat Hook!');
+});
+
+// Update user avatar display
+function updateUserAvatar() {
+    if (!currentUser) return;
+    
+    userAvatar.innerHTML = '';
+    if (currentUser.profilePic) {
+        const img = document.createElement('img');
+        img.src = currentUser.profilePic;
+        img.alt = currentUser.name;
+        userAvatar.appendChild(img);
+    } else {
+        userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    }
+}
+
+// Show profile picture in preview
+function showProfilePic(imageData) {
+    profilePicPreview.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = imageData;
+    img.alt = 'Profile';
+    profilePicPreview.appendChild(img);
+    profilePicInitial.style.display = 'none';
+}
+
+// Handle profile picture upload
+window.handleProfilePicUpload = function(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+        alert('File too large! Max 2MB allowed.');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const imageData = e.target.result;
+        showProfilePic(imageData);
+        
+        if (currentUser) {
+            currentUser.profilePic = imageData;
+            localStorage.setItem('chatUser', JSON.stringify(currentUser));
+            updateUserAvatar();
+            socket.emit('user-updated', currentUser);
+        }
+    };
+    reader.readAsDataURL(file);
 };
 
-/**
- * Append a system message (join/leave notifications)
- * @param {string} message - System message text
- * @param {string} type - Message type (info/success/error)
- */
-const appendSystemMessage = (message, type = 'info') => {
-  const messageElement = document.createElement('div');
-  messageElement.className = 'system-message';
-  
-  const bgColor = type === 'success' ? 'rgba(0, 255, 136, 0.2)' : 
-                  type === 'error' ? 'rgba(255, 107, 107, 0.2)' : 
-                  'rgba(100, 100, 255, 0.2)';
-  
-  messageElement.innerHTML = `
-    <div style="text-align: center; width: 100%; padding: 5px 0;">
-      <div style="display: inline-block; background: ${bgColor}; color: var(--text-muted); padding: 6px 12px; border-radius: 12px; font-size: 13px; margin: 2px 0;">
-        ${message}
-      </div>
-    </div>
-  `;
-  
-  messageContainer.appendChild(messageElement);
-  messageContainer.scrollTop = messageContainer.scrollHeight;
+// Save profile changes
+window.saveProfile = function() {
+    if (!currentUser) return;
+    
+    const newName = profileUsername.value.trim();
+    const newCountry = profileCountry.value;
+    
+    // Check if name changed
+    if (newName !== currentUser.name) {
+        const lastChange = localStorage.getItem('lastNameChange');
+        const now = new Date().getTime();
+        
+        if (lastChange && (now - parseInt(lastChange)) < 30 * 24 * 60 * 60 * 1000) {
+            const daysLeft = Math.ceil((30 * 24 * 60 * 60 * 1000 - (now - parseInt(lastChange))) / (24 * 60 * 60 * 1000));
+            alert(`You can change your username again in ${daysLeft} days.`);
+            profileUsername.value = currentUser.name;
+            return;
+        }
+        
+        localStorage.setItem('lastNameChange', now.toString());
+    }
+    
+    currentUser.name = newName;
+    currentUser.country = newCountry;
+    
+    localStorage.setItem('chatUser', JSON.stringify(currentUser));
+    updateUserAvatar();
+    socket.emit('user-updated', currentUser);
+    
+    toggleProfilePanel();
+    showSuccessMessage('Profile updated successfully!');
 };
 
-// ===================================================
-// ✅ MESSAGE SENDING FUNCTIONALITY
-// ===================================================
+// Toggle profile panel
+window.toggleProfilePanel = function() {
+    if (currentUser) {
+        profileUsername.value = currentUser.name || '';
+        profileCountry.value = currentUser.country || 'India';
+    }
+    profilePanel.classList.toggle('active');
+};
 
-if (form) {
-  form.addEventListener('submit', (e) => {
+// Send message
+messageForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const message = messageInput.value.trim();
-    
-    // Validation
-    if (!message) {
-      showConfirmationMessage('Message cannot be empty!', 'error');
-      return;
+    if (message && currentUser) {
+        socket.emit('send-message', {
+            text: message,
+            user: currentUser,
+            timestamp: new Date().toISOString()
+        });
+        messageInput.value = '';
     }
+});
+
+// Receive message
+socket.on('message', (data) => {
+    appendMessage(data);
+});
+
+// Load message history
+socket.on('message-history', (messages) => {
+    messageContainer.innerHTML = '';
+    messages.forEach(msg => appendMessage(msg));
+});
+
+// Update online users
+socket.on('online-users', (users) => {
+    updateOnlineUsersList(users);
+});
+
+// Append message to container
+function appendMessage(data) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message');
     
-    if (!currentUser.name) {
-      showConfirmationMessage('Please join the chat first!', 'error');
-      return;
-    }
+    const isOwn = data.user.id === currentUser?.id;
+    messageElement.classList.add(isOwn ? 'own' : 'other');
     
-    if (!socket || !socket.connected) {
-      showConfirmationMessage('Not connected to server!', 'error');
-      return;
-    }
+    const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
-    // Display message locally
-    appendMessage(message, currentUser, true);
+    messageElement.innerHTML = `
+        <div class="message-bubble">
+            <div class="message-user">
+                <div class="user-avatar" onclick="showUserProfile('${data.user.id}')">
+                    ${data.user.profilePic ? 
+                      `<img src="${data.user.profilePic}" alt="${data.user.name}">` : 
+                      data.user.name.charAt(0).toUpperCase()}
+                </div>
+                <span class="user-name" onclick="showUserProfile('${data.user.id}')">
+                    ${data.user.name}
+                    <span class="verified-badge"><i class="fas fa-check"></i></span>
+                </span>
+            </div>
+            <div class="message-content">${data.text}</div>
+            <div class="message-meta">
+                <span>${data.user.country || 'Unknown'}</span>
+                <span>${time}</span>
+            </div>
+        </div>
+    `;
     
-    // Send message to server
-    socket.emit('send', { 
-      message: message, 
-      user: currentUser,
-      timestamp: new Date().toLocaleTimeString()
+    messageContainer.appendChild(messageElement);
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+}
+
+// Update online users list
+function updateOnlineUsersList(users) {
+    if (!onlineUsersContainer) return;
+    
+    onlineUsersContainer.innerHTML = '';
+    
+    users.forEach(user => {
+        if (user.id === currentUser?.id) return;
+        
+        const userElement = document.createElement('div');
+        userElement.classList.add('online-user-item');
+        userElement.onclick = () => showUserProfile(user.id);
+        
+        userElement.innerHTML = `
+            <div class="online-user-status"></div>
+            <div class="user-avatar-small">
+                ${user.profilePic ? 
+                  `<img src="${user.profilePic}" alt="${user.name}">` : 
+                  user.name.charAt(0).toUpperCase()}
+            </div>
+            <div class="online-user-name">
+                ${user.name}
+                <span class="verified-badge"><i class="fas fa-check"></i></span>
+            </div>
+        `;
+        
+        onlineUsersContainer.appendChild(userElement);
     });
-    
-    // Clear input
-    messageInput.value = '';
-    
-    // Show confirmation
-    showConfirmationMessage('Message sent!', 'success');
-  });
 }
 
-// ===================================================
-// ✅ SOCKET.IO EVENT LISTENERS
-// ===================================================
-
-function setupSocketEvents() {
-  // ✅ Connection established
-  socket.on('connect', () => {
-    console.log('✅ Connected to server with ID:', socket.id);
-    connectionAttempts = 0;
-    showConfirmationMessage('Connected to chat server!', 'success');
-    updateConnectionStatus(true);
-    
-    // Rejoin if user was already joined
-    if (currentUser.name) {
-      setTimeout(() => {
-        socket.emit('new-user-joined', currentUser);
-      }, 500);
-    }
-  });
-
-  // ✅ User joined (others)
-  socket.on('user-joined', (user) => {
-    console.log('User joined:', user.name);
-    appendSystemMessage(`${user.name} joined the chat`, 'info');
-  });
-
-  // ✅ Self joined confirmation
-  socket.on('user-joined-self', (user) => {
-    console.log('You joined as:', user.name);
-    currentUser.socketId = socket.id;
-    appendSystemMessage(`You joined as ${user.name}`, 'success');
-  });
-
-  // ✅ Receive message from others
-  socket.on('receive', (data) => {
-    console.log('Message received from:', data.user.name);
-    appendMessage(data.message, data.user, false);
-  });
-
-  // ✅ User left
-  socket.on('left', (user) => {
-    console.log('User left:', user.name);
-    appendSystemMessage(`${user.name} left the chat`, 'info');
-  });
-
-  // ✅ Message sent confirmation
-  socket.on('message-sent', (data) => {
-    console.log('Message sent confirmation:', data);
-  });
-
-  // ✅ Connection error
-  socket.on('connect_error', (error) => {
-    console.error('Connection error:', error);
-    connectionAttempts++;
-    
-    if (connectionAttempts <= MAX_CONNECTION_ATTEMPTS) {
-      showConfirmationMessage(`Connection error (Attempt ${connectionAttempts}/${MAX_CONNECTION_ATTEMPTS})`, 'error');
-    } else {
-      showConfirmationMessage('Failed to connect to server. Please refresh.', 'error');
-    }
-    
-    updateConnectionStatus(false);
-  });
-
-  // ✅ Disconnected
-  socket.on('disconnect', (reason) => {
-    console.log('❌ Disconnected:', reason);
-    showConfirmationMessage('Disconnected from server', 'error');
-    updateConnectionStatus(false);
-  });
-
-  // ✅ Typing indicators
-  socket.on('user-typing', (userName) => {
-    showTypingIndicator(userName);
-  });
-
-  socket.on('user-stop-typing', (userName) => {
-    hideTypingIndicator(userName);
-  });
-
-  // ✅ Server error
-  socket.on('error', (data) => {
-    showConfirmationMessage(`Server Error: ${data.message}`, 'error');
-  });
-}
-
-// ===================================================
-// ✅ UI HELPER FUNCTIONS
-// ===================================================
-
-/**
- * Update connection status indicator
- * @param {boolean} connected - Connection status
- */
-function updateConnectionStatus(connected) {
-  const statusIndicator = document.querySelector('.status-indicator');
-  const statusText = document.querySelector('.connection-status span');
-  
-  if (statusIndicator && statusText) {
-    if (connected) {
-      statusIndicator.style.background = '#00ff88';
-      statusIndicator.style.boxShadow = '0 0 10px #00ff88';
-      statusText.textContent = 'Connected';
-      statusText.style.color = '#00ff88';
-    } else {
-      statusIndicator.style.background = '#ff6b6b';
-      statusIndicator.style.boxShadow = '0 0 10px #ff6b6b';
-      statusText.textContent = 'Disconnected';
-      statusText.style.color = '#ff6b6b';
-    }
-  }
-}
-
-/**
- * Show temporary confirmation message
- * @param {string} message - Message to display
- * @param {string} type - Message type (success/error)
- */
-function showConfirmationMessage(message, type = 'success') {
-  // Remove any existing confirmation
-  const existing = document.querySelector('.confirmation-message');
-  if (existing) {
-    existing.remove();
-  }
-  
-  const confirmation = document.createElement('div');
-  confirmation.className = 'confirmation-message';
-  confirmation.textContent = message;
-  confirmation.style.background = type === 'success' 
-    ? 'rgba(0, 255, 136, 0.9)' 
-    : 'rgba(255, 107, 107, 0.9)';
-  
-  confirmation.style.position = 'fixed';
-  confirmation.style.top = '20px';
-  confirmation.style.right = '20px';
-  confirmation.style.padding = '12px 24px';
-  confirmation.style.borderRadius = '10px';
-  confirmation.style.color = 'white';
-  confirmation.style.zIndex = '9999';
-  confirmation.style.fontWeight = 'bold';
-  confirmation.style.fontSize = '14px';
-  confirmation.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
-  confirmation.style.animation = 'slideIn 0.3s ease';
-  
-  document.body.appendChild(confirmation);
-  
-  setTimeout(() => {
-    confirmation.style.opacity = '0';
-    confirmation.style.transition = 'opacity 0.5s';
-    setTimeout(() => {
-      if (confirmation.parentNode) {
-        confirmation.remove();
-      }
-    }, 500);
-  }, 3000);
-}
-
-// Add CSS animation
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes slideIn {
-    from {
-      transform: translateX(100%);
-      opacity: 0;
-    }
-    to {
-      transform: translateX(0);
-      opacity: 1;
-    }
-  }
-`;
-document.head.appendChild(style);
-
-// ===================================================
-// ✅ TYPING INDICATORS
-// ===================================================
-let typingTimeout;
-let typingIndicator;
-
-/**
- * Show typing indicator for a user
- * @param {string} userName - Name of typing user
- */
-function showTypingIndicator(userName) {
-  if (!typingIndicator) {
-    typingIndicator = document.createElement('div');
-    typingIndicator.className = 'typing-indicator';
-    typingIndicator.style.position = 'fixed';
-    typingIndicator.style.bottom = '80px';
-    typingIndicator.style.left = '20px';
-    typingIndicator.style.background = 'rgba(0, 0, 0, 0.8)';
-    typingIndicator.style.color = 'white';
-    typingIndicator.style.padding = '10px 18px';
-    typingIndicator.style.borderRadius = '20px';
-    typingIndicator.style.fontSize = '14px';
-    typingIndicator.style.zIndex = '9998';
-    typingIndicator.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-    document.body.appendChild(typingIndicator);
-  }
-  typingIndicator.textContent = `${userName} is typing...`;
-  typingIndicator.style.display = 'block';
-  
-  clearTimeout(typingTimeout);
-  typingTimeout = setTimeout(() => {
-    hideTypingIndicator();
-  }, 2000);
-}
-
-/**
- * Hide typing indicator
- */
-function hideTypingIndicator() {
-  if (typingIndicator) {
-    typingIndicator.style.display = 'none';
-  }
-}
-
-// Typing detection
-if (messageInput) {
-  messageInput.addEventListener('input', () => {
-    if (!currentUser.name || !socket || !socket.connected) return;
-    
-    clearTimeout(typingTimeout);
-    socket.emit('typing-start');
-    
-    typingTimeout = setTimeout(() => {
-      socket.emit('typing-stop');
-    }, 1000);
-  });
-}
-
-// ===================================================
-// ✅ JOIN FORM FUNCTIONALITY
-// ===================================================
-
-if (joinForm) {
-  joinForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const name = joinName.value.trim();
-    const gender = joinGender.value;
-    const region = joinRegion.value;
-
-    // Validation
-    if (!name || !gender || !region) {
-      showConfirmationMessage('Please fill all fields!', 'error');
-      return;
-    }
-
-    if (name.length < 2) {
-      showConfirmationMessage('Name must be at least 2 characters!', 'error');
-      return;
-    }
-
-    // Generate profile picture with avatar
-    const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
-    const color = colors[name.length % colors.length];
-    const initial = name.charAt(0).toUpperCase();
-    
-    // Create SVG avatar
-    const profilePicture = `data:image/svg+xml;base64,${btoa(`
-      <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
-            <stop offset="100%" style="stop-color:${color}99;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="50" fill="url(#grad)"/>
-        <text x="50" y="60" text-anchor="middle" fill="white" font-size="40" font-family="Arial, sans-serif" font-weight="bold">${initial}</text>
-      </svg>
-    `)}`;
-
-    // Update current user
-    currentUser = { 
-      name: name, 
-      gender: gender, 
-      region: region, 
-      profilePicture: profilePicture,
-      socketId: ''
-    };
-
-    // Update user avatar in UI
-    updateUserAvatar(name, profilePicture);
-
-    // Initialize socket if not already
-    if (!socket) {
-      initializeSocket();
-    }
-
-    // Join chat via Socket.IO
-    socket.emit('new-user-joined', currentUser);
-    
-    // Hide join modal
-    if (joinModal) {
-      joinModal.style.display = 'none';
-    }
-    
-    // Show welcome message
-    const welcomeMsg = `Welcome ${name} to Chat Hook!`;
-    showConfirmationMessage(welcomeMsg, 'success');
-    appendSystemMessage(welcomeMsg, 'success');
-    
-    // Focus on message input
-    setTimeout(() => {
-      if (messageInput) {
-        messageInput.focus();
-      }
-    }, 300);
-  });
-}
-
-/**
- * Update user avatar in the UI
- * @param {string} name - User name
- * @param {string} imageData - Profile picture data
- */
-function updateUserAvatar(name, imageData) {
-  const userAvatar = document.getElementById('userAvatar');
-  if (userAvatar) {
-    if (imageData) {
-      userAvatar.innerHTML = `<img src="${imageData}" alt="${name}">`;
-    } else {
-      userAvatar.innerHTML = name.charAt(0).toUpperCase();
-    }
-  }
-}
-
-// ===================================================
-// ✅ NOTIFICATION PERMISSION
-// ===================================================
-
-function requestNotificationPermission() {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission().then(permission => {
-      console.log("Notification permission:", permission);
+// Show user profile modal
+window.showUserProfile = function(userId) {
+    socket.emit('get-user', userId, (user) => {
+        if (!user) return;
+        
+        selectedUserId = userId;
+        modalUsername.innerHTML = `
+            ${user.name}
+            <span class="verified-badge"><i class="fas fa-check"></i></span>
+        `;
+        modalCountry.querySelector('span').textContent = user.country || 'Unknown';
+        
+        modalAvatar.innerHTML = user.profilePic ? 
+            `<img src="${user.profilePic}" alt="${user.name}">` : 
+            `<span>${user.name.charAt(0).toUpperCase()}</span>`;
+        
+        userProfileModal.classList.add('active');
     });
-  }
+};
+
+// Close user profile modal
+window.closeUserProfileModal = function() {
+    userProfileModal.classList.remove('active');
+};
+
+// Open private chat from modal
+window.openPrivateChatFromModal = function() {
+    if (!selectedUserId) return;
+    closeUserProfileModal();
+    // Will implement private chat feature
+};
+
+// Toggle online users list
+window.toggleOnlineUsers = function() {
+    document.getElementById('onlineUsersList').classList.toggle('active');
+};
+
+// Show success message
+function showSuccessMessage(message) {
+    const msg = document.createElement('div');
+    msg.className = 'confirmation-message';
+    msg.textContent = message;
+    document.body.appendChild(msg);
+    
+    setTimeout(() => {
+        msg.remove();
+    }, 3000);
 }
 
-// ===================================================
-// ✅ PAGE INITIALIZATION
-// ===================================================
+// Show success animation
+function showSuccessAnimation(message) {
+    const anim = document.getElementById('join-success-animation');
+    anim.querySelector('.success-message').textContent = message;
+    anim.style.display = 'flex';
+    
+    setTimeout(() => {
+        anim.style.display = 'none';
+    }, 2000);
+}
 
-window.addEventListener('load', () => {
-  console.log('🌐 Chat Hook Application Loaded');
-  console.log('🌐 Server URL:', RENDER_URL);
-  
-  // Request notification permission
-  requestNotificationPermission();
-  
-  // Initialize socket connection
-  initializeSocket();
-  
-  // Check for existing session in localStorage
-  const storedUser = localStorage.getItem("chatHookUser");
-  if (storedUser) {
-    try {
-      const user = JSON.parse(storedUser);
-      console.log("Found existing session for:", user.email);
-      
-      // Auto-fill join form
-      if (joinName) {
-        joinName.value = user.name || user.email.split('@')[0];
-      }
-    } catch (e) {
-      console.error("Error parsing stored user:", e);
+// ========== ANIMATION FUNCTIONS ==========
+window.openAnimationSelector = function() {
+    document.getElementById('animation-modal').style.display = 'flex';
+};
+
+window.closeAnimationSelector = function() {
+    document.getElementById('animation-modal').style.display = 'none';
+};
+
+window.submitAnimationSelection = function() {
+    const active = document.querySelector('.animation-option.active');
+    if (active) {
+        const animation = active.dataset.animation;
+        
+        // Hide all animations
+        document.querySelectorAll('.animation-container, .floating-shapes, .neon-grid, .liquid-rainbow, .cosmic-energy, .holographic-prism, .digital-rain, .particle-galaxy, .chat-hook-animation, .custom-name-animation, .john-cena-animation').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // Show selected animation
+        if (animation === 'default') {
+            document.getElementById('default-animation').style.display = 'block';
+        } else if (animation === 'custom-name') {
+            document.getElementById('custom-name-input-container').style.display = 'block';
+            document.getElementById('custom-name-animation').style.display = 'block';
+        } else {
+            const animElement = document.getElementById(animation + '-animation');
+            if (animElement) {
+                animElement.style.display = 'block';
+            }
+        }
+        
+        localStorage.setItem('selectedAnimation', animation);
     }
-  }
-  
-  // Check if user is already logged in via Firebase
-  const currentFirebaseUser = auth.currentUser;
-  if (currentFirebaseUser) {
-    console.log("User already logged in via Firebase:", currentFirebaseUser.email);
-    if (joinName) {
-      joinName.value = currentFirebaseUser.displayName || currentFirebaseUser.email.split('@')[0];
+    closeAnimationSelector();
+};
+
+window.activateCustomNameAnimation = function() {
+    const name = document.getElementById('custom-name-input').value.trim();
+    if (name) {
+        // Create name particles
+        const anim = document.getElementById('custom-name-animation');
+        anim.innerHTML = '';
+        
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'name-particle';
+            particle.textContent = name.charAt(Math.floor(Math.random() * name.length));
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 5 + 's';
+            particle.style.animationDuration = 10 + Math.random() * 10 + 's';
+            anim.appendChild(particle);
+        }
     }
-  }
-  
-  // Show join modal after short delay
-  setTimeout(() => {
-    if (joinModal) {
-      joinModal.style.display = 'flex';
-      // Focus on name input
-      if (joinName) {
-        joinName.focus();
-      }
+};
+
+// ========== COMEDY CLUB FUNCTIONS ==========
+const jokes = [
+    "Why don't scientists trust atoms? Because they make up everything! 😂",
+    "What do you call a fake noodle? An impasta! 🍝",
+    "Why did the scarecrow win an award? He was outstanding in his field! 🌾",
+    "What do you call a bear with no teeth? A gummy bear! 🐻",
+    "Why don't eggs tell jokes? They'd crack each other up! 🥚",
+    "What do you call a sleeping bull? A bulldozer! 🐂",
+    "Why did the math book look sad? It had too many problems! 📚",
+    "What do you call a fish with no eyes? A fsh! 🐠",
+    "Why did the bicycle fall over? It was two-tired! 🚲",
+    "What do you call a pig that does karate? A pork chop! 🥋",
+    "Why did the cookie go to the doctor? It felt crumby! 🍪",
+    "What do you call a belt made of watches? A waist of time! ⌚",
+    "Why don't skeletons fight each other? They don't have the guts! 💀",
+    "What do you call a factory that makes okay products? A satisfactory! 🏭",
+    "Why did the coffee file a police report? It got mugged! ☕"
+];
+
+window.openComedyClub = function() {
+    document.getElementById('comedy-modal').style.display = 'flex';
+    document.getElementById('joke-count').textContent = jokeCount;
+};
+
+window.closeComedyClub = function() {
+    document.getElementById('comedy-modal').style.display = 'none';
+};
+
+window.getNewJoke = function() {
+    const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+    document.getElementById('joke-display').textContent = randomJoke;
+    jokeCount++;
+    document.getElementById('joke-count').textContent = jokeCount;
+    
+    // Create laughter animation
+    const modal = document.querySelector('.comedy-card');
+    const laugh = document.createElement('div');
+    laugh.className = 'laughter-animation';
+    laugh.textContent = '😂';
+    laugh.style.left = Math.random() * 100 + '%';
+    laugh.style.top = Math.random() * 100 + '%';
+    modal.appendChild(laugh);
+    
+    setTimeout(() => laugh.remove(), 2000);
+};
+
+window.shareJokeToChat = function() {
+    const joke = document.getElementById('joke-display').textContent;
+    if (joke && currentUser && !joke.includes('Click')) {
+        socket.emit('send-message', {
+            text: '🤣 JOKE: ' + joke,
+            user: currentUser,
+            timestamp: new Date().toISOString()
+        });
+        closeComedyClub();
     }
-  }, 800);
-  
-  // Auto-reconnect if disconnected
-  setInterval(() => {
-    if (socket && !socket.connected && socket.disconnected) {
-      console.log('🔄 Attempting to reconnect...');
-      socket.connect();
+};
+
+window.addNewJoke = function() {
+    const newJoke = document.getElementById('new-joke-input').value.trim();
+    if (newJoke) {
+        jokes.push(newJoke);
+        document.getElementById('new-joke-input').value = '';
+        alert('Joke added! Thanks for contributing! 🎉');
     }
-  }, 5000);
+};
+
+// Weather and time update
+function updateWeatherTime() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    
+    // Random weather for demo
+    const weathers = ['☀️ Sunny', '⛅ Partly Cloudy', '☁️ Cloudy', '🌧️ Rainy', '⛈️ Stormy', '❄️ Snowy'];
+    const weather = weathers[Math.floor(Math.random() * weathers.length)];
+    const temp = Math.floor(Math.random() * 15) + 20; // 20-35°C
+    
+    document.getElementById('weatherTime').innerHTML = 
+        `${temp}°C ${weather} • ${timeStr} • ${dateStr}`;
+}
+
+setInterval(updateWeatherTime, 1000);
+updateWeatherTime();
+
+// Handle auth state changes
+supabase.auth.onAuthStateChange((event, session) => {
+    console.log('Auth state changed:', event);
+    
+    if (event === 'SIGNED_IN' && session) {
+        checkUserProfile(session.user);
+    } else if (event === 'SIGNED_OUT') {
+        // User signed out
+        localStorage.removeItem('chatUser');
+        currentUser = null;
+        showJoinModal();
+    }
 });
 
-// ===================================================
-// ✅ ERROR HANDLING
-// ===================================================
-
-// Global error handler
-window.addEventListener('error', (event) => {
-  console.error('Global error:', event.error);
-  showConfirmationMessage('An error occurred. Please refresh.', 'error');
-});
-
-// Unhandled promise rejection
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-});
-
-// ===================================================
-// ✅ EXPOSE FUNCTIONS TO GLOBAL SCOPE
-// ===================================================
-
-// Make functions available globally for HTML onclick handlers
-window.googleLogin = googleLogin;
-window.signInWithGoogle = googleLogin;
-window.showConfirmationMessage = showConfirmationMessage;
+// Logout function (optional)
+window.logout = async function() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error('Logout error:', error);
+    } else {
+        localStorage.removeItem('chatUser');
+        currentUser = null;
+        showJoinModal();
+    }
+};

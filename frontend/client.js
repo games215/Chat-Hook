@@ -3,6 +3,12 @@
 // ✅ FULLY COMPATIBLE WITH RENDER.COM
 // ===================================================
 
+console.log("🔥 CLIENT JS LOADED - Version 1.0");
+
+// ✅ **Appwrite Import Test**
+import { account } from "./appwrite.js";
+console.log("✅ Appwrite import successful:", account ? "Account object found" : "Account object missing");
+
 // ✅ **Socket.IO Connection for Render**
 let socket;
 let connectionAttempts = 0;
@@ -39,12 +45,20 @@ const joinName = document.getElementById('join-name');
 const joinGender = document.getElementById('join-gender');
 const joinRegion = document.getElementById('join-region');
 
-// ✅ **Login/Profile Elements - ADD THESE LINES**
+// ✅ Login/Profile Elements
 const loginScreen = document.getElementById('login-screen');
 const profileScreen = document.getElementById('profile-screen');
 const loginBtn = document.getElementById('login-btn');
 const logoutBtn = document.getElementById('logout-btn');
 const userNameSpan = document.getElementById('user-name');
+
+console.log("✅ DOM elements loaded:", {
+  form: !!form,
+  messageInput: !!messageInput,
+  joinModal: !!joinModal,
+  loginScreen: !!loginScreen,
+  profileScreen: !!profileScreen
+});
 
 // ===================================================
 // ✅ USER DATA STORAGE
@@ -59,135 +73,39 @@ let currentUser = {
   googleUser: null
 };
 
-// ✅ **Google Login Flag**
+// ✅ Google Login Flag
 let googleLoggedIn = false;
 
+// Make currentUser globally available for HTML
+window.currentUser = currentUser;
+
 // ===================================================
-// ✅ LOGIN FUNCTIONS - ADD THESE FUNCTIONS
+// ✅ APPSYNC FUNCTIONS - REPLACED WITH APPCALL
 // ===================================================
 
 /**
- * Get user from session
- */
-async function getUser() {
-  try {
-    // Check if user exists in sessionStorage (for demo)
-    const savedUser = sessionStorage.getItem('chatHookUser');
-    if (savedUser) {
-      const user = JSON.parse(savedUser);
-      renderProfileScreen(user);
-    } else {
-      renderLoginScreen();
-    }
-  } catch (error) {
-    console.error('Error getting user:', error);
-    renderLoginScreen();
-  }
-}
-
-/**
- * Render login screen
- */
-function renderLoginScreen() {
-  if (loginScreen) {
-    loginScreen.classList.remove('hidden');
-  }
-  if (profileScreen) {
-    profileScreen.classList.add('hidden');
-  }
-}
-
-/**
- * Render profile screen
- * @param {object} user - User data
- */
-function renderProfileScreen(user) {
-  if (profileScreen && userNameSpan) {
-    userNameSpan.textContent = user.name || user.googleUser?.name || 'User';
-    profileScreen.classList.remove('hidden');
-  }
-  if (loginScreen) {
-    loginScreen.classList.add('hidden');
-  }
-}
-
-/**
- * Handle Google Login - UPDATED for Render
+ * Handle Google Login with Appwrite
  */
 async function handleGoogleLogin() {
+  console.log("🚀 handleGoogleLogin called");
   try {
     const loginBtn = document.getElementById('google-login-btn');
     if (loginBtn) {
       loginBtn.disabled = true;
-      loginBtn.innerHTML = '⏳ Logging in...';
+      loginBtn.innerHTML = '⏳ Redirecting to Google...';
     }
 
-    // For Render.com deployment - Use mock login with animation
-    setTimeout(() => {
-      // Mock Google user data for demo
-      const mockGoogleUser = {
-        name: 'John Doe',
-        email: 'john.doe@gmail.com',
-        picture: `https://ui-avatars.com/api/?name=John+Doe&background=0cf&color=fff&size=100`,
-        sub: 'google_' + Date.now()
-      };
+    console.log("📤 Redirecting to Google OAuth...");
+    // Appwrite Google OAuth
+    await account.createOAuth2Session(
+      "google",
+      "https://chat-hook-1.onrender.com",
+      "https://chat-hook-1.onrender.com"
+    );
 
-      // Save to sessionStorage
-      sessionStorage.setItem('chatHookUser', JSON.stringify(mockGoogleUser));
-
-      // Update UI
-      const googleInfo = document.getElementById('google-user-info');
-      const googleName = document.getElementById('google-name');
-      const googleEmail = document.getElementById('google-email');
-      const googleAvatar = document.getElementById('google-avatar');
-
-      if (googleName) googleName.textContent = mockGoogleUser.name;
-      if (googleEmail) googleEmail.textContent = mockGoogleUser.email;
-      if (googleAvatar) googleAvatar.src = mockGoogleUser.picture;
-      if (googleInfo) googleInfo.style.display = 'flex';
-
-      if (loginBtn) loginBtn.style.display = 'none';
-
-      const status = document.getElementById('google-login-status');
-      if (status) {
-        status.innerHTML = '<span style="color: var(--accent);">✓ Google login successful</span>';
-      }
-
-      // Enable form fields
-      document.querySelectorAll('#form-fields input, #form-fields select').forEach(field => {
-        field.disabled = false;
-      });
-
-      document.getElementById('form-fields')?.classList.add('active');
-      googleLoggedIn = true;
-
-      // Store user data
-      currentUser.googleUser = mockGoogleUser;
-      currentUser.name = mockGoogleUser.name;
-      currentUser.email = mockGoogleUser.email;
-      currentUser.profilePicture = mockGoogleUser.picture;
-
-      // Pre-fill name field
-      const joinNameField = document.getElementById('join-name');
-      if (joinNameField) joinNameField.value = mockGoogleUser.name;
-
-      // Show success animation
-      showConfirmationMessage('Google Login Successful!', 'success');
-      
-      // Auto fill join form after 1 second
-      setTimeout(() => {
-        if (joinNameField) {
-          joinNameField.value = mockGoogleUser.name;
-          // Trigger input event to enable join button
-          joinNameField.dispatchEvent(new Event('input'));
-        }
-      }, 500);
-      
-    }, 1500);
-    
   } catch (error) {
-    console.error('Login error:', error);
-    showConfirmationMessage('Login failed. Please try again.', 'error');
+    console.error("❌ Google login error:", error);
+    showConfirmationMessage("Google login failed: " + error.message, "error");
     
     const loginBtn = document.getElementById('google-login-btn');
     if (loginBtn) {
@@ -198,12 +116,75 @@ async function handleGoogleLogin() {
 }
 
 /**
- * Handle logout
+ * Check login status on page load - Appwrite version
  */
-function handleLogout() {
+async function checkLoginStatus() {
+  console.log("🔍 Checking login status...");
   try {
-    // Clear session
-    sessionStorage.removeItem('chatHookUser');
+    const user = await account.get();
+    console.log("✅ User found:", user);
+    
+    if (user) {
+      currentUser.name = user.name;
+      currentUser.email = user.email;
+      currentUser.profilePicture = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=0cf&color=fff&size=100`;
+      currentUser.googleUser = user;
+
+      renderProfileScreen(currentUser);
+      
+      // Hide join modal
+      if (joinModal) joinModal.style.display = 'none';
+      
+      // Show profile container
+      const profileContainer = document.getElementById('profile-container');
+      if (profileContainer) profileContainer.style.display = 'block';
+      
+      // Update profile trigger
+      const profileTrigger = document.getElementById('profile-trigger');
+      if (profileTrigger) profileTrigger.textContent = user.name.charAt(0).toUpperCase();
+      
+      // Update profile info
+      const profileInfo = document.getElementById('profile-info');
+      if (profileInfo) {
+        profileInfo.innerHTML = `
+          <img class="profile-avatar" src="${currentUser.profilePicture}" alt="${user.name}">
+          <div>
+            <div class="profile-name">${user.name}</div>
+            <div class="profile-email">${user.email}</div>
+          </div>
+        `;
+      }
+      
+      // Pre-fill join form
+      const joinNameField = document.getElementById('join-name');
+      if (joinNameField) joinNameField.value = user.name;
+      
+      // Enable form fields
+      document.querySelectorAll('#form-fields input, #form-fields select').forEach(field => {
+        field.disabled = false;
+      });
+      document.getElementById('form-fields')?.classList.add('active');
+      
+      googleLoggedIn = true;
+      
+      showConfirmationMessage(`Welcome back, ${user.name}!`, 'success');
+    }
+  } catch (error) {
+    console.log("ℹ️ No active session:", error.message);
+    renderLoginScreen();
+  }
+}
+
+/**
+ * Handle logout with Appwrite
+ */
+async function handleLogout() {
+  console.log("🚪 handleLogout called");
+  try {
+    await account.deleteSession("current");
+    console.log("✅ Session deleted");
+    
+    sessionStorage.clear();
     
     // Reset user data
     currentUser = {
@@ -218,11 +199,9 @@ function handleLogout() {
     
     googleLoggedIn = false;
     
-    // Show login screen
     renderLoginScreen();
     
-    // Reset join modal if visible
-    const joinModal = document.getElementById('join-modal');
+    // Reset join modal
     if (joinModal) {
       joinModal.style.display = 'flex';
     }
@@ -251,44 +230,42 @@ function handleLogout() {
     
     showConfirmationMessage('Logged out successfully', 'success');
     
-    // Emit leave event if socket exists
+    // Emit leave event
     if (socket && socket.connected) {
       socket.emit('left', { name: 'User' });
     }
     
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error("❌ Logout error:", error);
+    showConfirmationMessage('Logout failed: ' + error.message, 'error');
   }
 }
 
 /**
- * Check login status on page load
+ * Render login screen
  */
-function checkLoginStatus() {
-  const savedUser = sessionStorage.getItem('chatHookUser');
-  if (savedUser) {
-    try {
-      const user = JSON.parse(savedUser);
-      renderProfileScreen(user);
-      
-      // Update current user
-      currentUser.name = user.name || '';
-      currentUser.email = user.email || '';
-      currentUser.profilePicture = user.picture || '';
-      currentUser.googleUser = user;
-      
-      // Hide join modal
-      const joinModal = document.getElementById('join-modal');
-      if (joinModal) joinModal.style.display = 'none';
-      
-      // Show profile container
-      const profileContainer = document.getElementById('profile-container');
-      if (profileContainer) profileContainer.style.display = 'block';
-      
-    } catch (error) {
-      console.error('Error parsing saved user:', error);
-      sessionStorage.removeItem('chatHookUser');
-    }
+function renderLoginScreen() {
+  console.log("👤 Rendering login screen");
+  if (loginScreen) {
+    loginScreen.classList.remove('hidden');
+  }
+  if (profileScreen) {
+    profileScreen.classList.add('hidden');
+  }
+}
+
+/**
+ * Render profile screen
+ * @param {object} user - User data
+ */
+function renderProfileScreen(user) {
+  console.log("👤 Rendering profile screen for:", user.name);
+  if (profileScreen && userNameSpan) {
+    userNameSpan.textContent = user.name || 'User';
+    profileScreen.classList.remove('hidden');
+  }
+  if (loginScreen) {
+    loginScreen.classList.add('hidden');
   }
 }
 
@@ -314,7 +291,7 @@ const appendMessage = (message, userData, isOwn = false) => {
   messageElement.innerHTML = `
     <div class="message-bubble">
       <div class="message-user">
-        <img class="user-avatar" src="${userData.profilePicture}" alt="${userData.name}">
+        <img class="user-avatar" src="${userData.profilePicture || `https://ui-avatars.com/api/?name=${userData.name}&background=0cf&color=fff`}" alt="${userData.name}">
         <div class="user-name">${userData.name}</div>
       </div>
       <div class="message-content">${message}</div>
@@ -439,11 +416,6 @@ function setupSocketEvents() {
     appendSystemMessage(`${user.name} left the chat`, 'info');
   });
 
-  // ✅ Message sent confirmation
-  socket.on('message-sent', (data) => {
-    console.log('Message sent confirmation:', data);
-  });
-
   // ✅ Connection error
   socket.on('connect_error', (error) => {
     console.error('Connection error:', error);
@@ -472,11 +444,6 @@ function setupSocketEvents() {
 
   socket.on('user-stop-typing', (userName) => {
     hideTypingIndicator(userName);
-  });
-
-  // ✅ Server error
-  socket.on('error', (data) => {
-    showConfirmationMessage(`Server Error: ${data.message}`, 'error');
   });
 }
 
@@ -844,19 +811,16 @@ window.addEventListener('load', () => {
   console.log('🌐 Chat Hook Application Loaded');
   console.log('🌐 Server URL:', RENDER_URL);
   
-  // Check login status first
+  // Check login status first (Appwrite)
   checkLoginStatus();
   
   // Request notification permission
   requestNotificationPermission();
-  
-  // Initialize socket connection
-  initializeSocket();
+
   
   // Show join modal if not logged in
   setTimeout(() => {
-    const savedUser = sessionStorage.getItem('chatHookUser');
-    if (!savedUser && joinModal) {
+     if (!googleLoggedIn && joinModal) {
       joinModal.style.display = 'flex';
       const joinNameField = document.getElementById('join-name');
       if (joinNameField) {
@@ -908,3 +872,95 @@ window.closeComedyClub = closeComedyClub;
 window.getNewJoke = getNewJoke;
 window.shareJokeToChat = shareJokeToChat;
 window.addNewJoke = addNewJoke;
+window.appendMessage = appendMessage; // Make appendMessage available
+window.appendSystemMessage = appendSystemMessage; // Make appendSystemMessage available
+
+console.log("✅ All functions exported to window:", {
+  handleGoogleLogin: !!window.handleGoogleLogin,
+  handleJoinChat: !!window.handleJoinChat,
+  handleLogout: !!window.handleLogout,
+  openAnimationSelector: !!window.openAnimationSelector
+});
+
+// Animation functions (stubs - actual implementation in HTML)
+function openAnimationSelector() {
+  console.log('🎨 openAnimationSelector called');
+  const modal = document.getElementById('animation-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeAnimationSelector() {
+  console.log('🎨 closeAnimationSelector called');
+  const modal = document.getElementById('animation-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function submitAnimationSelection() {
+  console.log('🎨 submitAnimationSelection called');
+  closeAnimationSelector();
+  showConfirmationMessage('Animation changed!', 'success');
+}
+
+function activateCustomNameAnimation() {
+  console.log('🎨 activateCustomNameAnimation called');
+  const nameInput = document.getElementById('custom-name-input');
+  if (nameInput && nameInput.value.trim()) {
+    showConfirmationMessage('Custom animation activated for: ' + nameInput.value.trim(), 'success');
+  } else {
+    alert('Please enter a name first');
+  }
+}
+
+function openComedyClub() {
+  console.log('😂 openComedyClub called');
+  const modal = document.getElementById('comedy-modal');
+  if (modal) modal.style.display = 'flex';
+}
+
+function closeComedyClub() {
+  console.log('😂 closeComedyClub called');
+  const modal = document.getElementById('comedy-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function getNewJoke() {
+  console.log('😂 getNewJoke called');
+  const jokes = [
+    "Why don't scientists trust atoms? Because they make up everything!",
+    "Why did the scarecrow win an award? He was outstanding in his field!",
+    "Why don't eggs tell jokes? They'd crack each other up!",
+    "What do you call a fake noodle? An impasta!",
+    "Why did the math book look so sad? Because it had too many problems!"
+  ];
+  const randomJoke = jokes[Math.floor(Math.random() * jokes.length)];
+  const jokeDisplay = document.getElementById('joke-display');
+  if (jokeDisplay) {
+    jokeDisplay.textContent = randomJoke;
+    window.currentJoke = randomJoke;
+  }
+}
+
+function shareJokeToChat() {
+  console.log('😂 shareJokeToChat called');
+  const joke = document.getElementById('joke-display')?.textContent;
+  if (joke && joke !== 'Click "New Joke" to start laughing!' && currentUser.name) {
+    appendMessage(`😂 Comedy Club Joke: ${joke}`, currentUser, true);
+    if (socket && socket.connected) {
+      socket.emit('send', { message: `😂 Comedy Club Joke: ${joke}`, user: currentUser });
+    }
+    closeComedyClub();
+  } else if (!currentUser.name) {
+    showConfirmationMessage('Please join the chat first!', 'error');
+  }
+}
+
+function addNewJoke() {
+  console.log('😂 addNewJoke called');
+  const newJoke = document.getElementById('new-joke-input')?.value.trim();
+  if (newJoke) {
+    showConfirmationMessage('Joke added! Thanks for contributing!', 'success');
+    document.getElementById('new-joke-input').value = '';
+  }
+}
+
+console.log("✅ CLIENT JS FULLY LOADED - All systems go!");

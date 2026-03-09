@@ -1,8 +1,11 @@
-import { Client, Account, Client, Account } from "appwrite";
+import { Client, Account } from "appwrite";
 
-const Client = new Client()
-  .setEndpoint('https://cloud.appwrite.io/v1')
-  .setPoject('69ad8e6a002f31946715');
+const client = new Client();
 
-const Account = new Account(Client)
- export {Account, Client}
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject("69ad8e6a002f31946715");
+
+const account = new Account(client);
+
+export { client, account };

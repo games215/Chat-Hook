@@ -39,6 +39,13 @@ const joinName = document.getElementById('join-name');
 const joinGender = document.getElementById('join-gender');
 const joinRegion = document.getElementById('join-region');
 
+// ✅ **Login/Profile Elements - ADD THESE LINES**
+const loginScreen = document.getElementById('login-screen');
+const profileScreen = document.getElementById('profile-screen');
+const loginBtn = document.getElementById('login-btn');
+const logoutBtn = document.getElementById('logout-btn');
+const userNameSpan = document.getElementById('user-name');
+
 // ===================================================
 // ✅ USER DATA STORAGE
 // ===================================================
@@ -47,8 +54,243 @@ let currentUser = {
   gender: '',
   region: '',
   profilePicture: '',
-  socketId: ''
+  socketId: '',
+  email: '',
+  googleUser: null
 };
+
+// ✅ **Google Login Flag**
+let googleLoggedIn = false;
+
+// ===================================================
+// ✅ LOGIN FUNCTIONS - ADD THESE FUNCTIONS
+// ===================================================
+
+/**
+ * Get user from session
+ */
+async function getUser() {
+  try {
+    // Check if user exists in sessionStorage (for demo)
+    const savedUser = sessionStorage.getItem('chatHookUser');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      renderProfileScreen(user);
+    } else {
+      renderLoginScreen();
+    }
+  } catch (error) {
+    console.error('Error getting user:', error);
+    renderLoginScreen();
+  }
+}
+
+/**
+ * Render login screen
+ */
+function renderLoginScreen() {
+  if (loginScreen) {
+    loginScreen.classList.remove('hidden');
+  }
+  if (profileScreen) {
+    profileScreen.classList.add('hidden');
+  }
+}
+
+/**
+ * Render profile screen
+ * @param {object} user - User data
+ */
+function renderProfileScreen(user) {
+  if (profileScreen && userNameSpan) {
+    userNameSpan.textContent = user.name || user.googleUser?.name || 'User';
+    profileScreen.classList.remove('hidden');
+  }
+  if (loginScreen) {
+    loginScreen.classList.add('hidden');
+  }
+}
+
+/**
+ * Handle Google Login - UPDATED for Render
+ */
+async function handleGoogleLogin() {
+  try {
+    const loginBtn = document.getElementById('google-login-btn');
+    if (loginBtn) {
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '⏳ Logging in...';
+    }
+
+    // For Render.com deployment - Use mock login with animation
+    setTimeout(() => {
+      // Mock Google user data for demo
+      const mockGoogleUser = {
+        name: 'John Doe',
+        email: 'john.doe@gmail.com',
+        picture: `https://ui-avatars.com/api/?name=John+Doe&background=0cf&color=fff&size=100`,
+        sub: 'google_' + Date.now()
+      };
+
+      // Save to sessionStorage
+      sessionStorage.setItem('chatHookUser', JSON.stringify(mockGoogleUser));
+
+      // Update UI
+      const googleInfo = document.getElementById('google-user-info');
+      const googleName = document.getElementById('google-name');
+      const googleEmail = document.getElementById('google-email');
+      const googleAvatar = document.getElementById('google-avatar');
+
+      if (googleName) googleName.textContent = mockGoogleUser.name;
+      if (googleEmail) googleEmail.textContent = mockGoogleUser.email;
+      if (googleAvatar) googleAvatar.src = mockGoogleUser.picture;
+      if (googleInfo) googleInfo.style.display = 'flex';
+
+      if (loginBtn) loginBtn.style.display = 'none';
+
+      const status = document.getElementById('google-login-status');
+      if (status) {
+        status.innerHTML = '<span style="color: var(--accent);">✓ Google login successful</span>';
+      }
+
+      // Enable form fields
+      document.querySelectorAll('#form-fields input, #form-fields select').forEach(field => {
+        field.disabled = false;
+      });
+
+      document.getElementById('form-fields')?.classList.add('active');
+      googleLoggedIn = true;
+
+      // Store user data
+      currentUser.googleUser = mockGoogleUser;
+      currentUser.name = mockGoogleUser.name;
+      currentUser.email = mockGoogleUser.email;
+      currentUser.profilePicture = mockGoogleUser.picture;
+
+      // Pre-fill name field
+      const joinNameField = document.getElementById('join-name');
+      if (joinNameField) joinNameField.value = mockGoogleUser.name;
+
+      // Show success animation
+      showConfirmationMessage('Google Login Successful!', 'success');
+      
+      // Auto fill join form after 1 second
+      setTimeout(() => {
+        if (joinNameField) {
+          joinNameField.value = mockGoogleUser.name;
+          // Trigger input event to enable join button
+          joinNameField.dispatchEvent(new Event('input'));
+        }
+      }, 500);
+      
+    }, 1500);
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    showConfirmationMessage('Login failed. Please try again.', 'error');
+    
+    const loginBtn = document.getElementById('google-login-btn');
+    if (loginBtn) {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i>G</i> Login With Google';
+    }
+  }
+}
+
+/**
+ * Handle logout
+ */
+function handleLogout() {
+  try {
+    // Clear session
+    sessionStorage.removeItem('chatHookUser');
+    
+    // Reset user data
+    currentUser = {
+      name: '',
+      gender: '',
+      region: '',
+      profilePicture: '',
+      socketId: '',
+      email: '',
+      googleUser: null
+    };
+    
+    googleLoggedIn = false;
+    
+    // Show login screen
+    renderLoginScreen();
+    
+    // Reset join modal if visible
+    const joinModal = document.getElementById('join-modal');
+    if (joinModal) {
+      joinModal.style.display = 'flex';
+    }
+    
+    // Reset form fields
+    const googleBtn = document.getElementById('google-login-btn');
+    if (googleBtn) {
+      googleBtn.style.display = 'block';
+      googleBtn.disabled = false;
+      googleBtn.innerHTML = '<i>G</i> Login With Google';
+    }
+    
+    document.getElementById('google-user-info')?.style.setProperty('display', 'none');
+    document.getElementById('google-login-status')?.innerHTML = '';
+    
+    document.querySelectorAll('#form-fields input, #form-fields select').forEach(field => {
+      field.disabled = true;
+      if (field.id === 'join-name') field.value = '';
+      if (field.id === 'join-birthday') field.value = '';
+      if (field.id === 'join-gender') field.value = '';
+      if (field.id === 'join-region') field.value = '';
+    });
+    
+    document.getElementById('form-fields')?.classList.remove('active');
+    document.getElementById('join-chat-btn')?.setAttribute('disabled', 'disabled');
+    
+    showConfirmationMessage('Logged out successfully', 'success');
+    
+    // Emit leave event if socket exists
+    if (socket && socket.connected) {
+      socket.emit('left', { name: 'User' });
+    }
+    
+  } catch (error) {
+    console.error('Logout error:', error);
+  }
+}
+
+/**
+ * Check login status on page load
+ */
+function checkLoginStatus() {
+  const savedUser = sessionStorage.getItem('chatHookUser');
+  if (savedUser) {
+    try {
+      const user = JSON.parse(savedUser);
+      renderProfileScreen(user);
+      
+      // Update current user
+      currentUser.name = user.name || '';
+      currentUser.email = user.email || '';
+      currentUser.profilePicture = user.picture || '';
+      currentUser.googleUser = user;
+      
+      // Hide join modal
+      const joinModal = document.getElementById('join-modal');
+      if (joinModal) joinModal.style.display = 'none';
+      
+      // Show profile container
+      const profileContainer = document.getElementById('profile-container');
+      if (profileContainer) profileContainer.style.display = 'block';
+      
+    } catch (error) {
+      console.error('Error parsing saved user:', error);
+      sessionStorage.removeItem('chatHookUser');
+    }
+  }
+}
 
 // ===================================================
 // ✅ MESSAGE DISPLAY FUNCTIONS
@@ -77,7 +319,7 @@ const appendMessage = (message, userData, isOwn = false) => {
       </div>
       <div class="message-content">${message}</div>
       <div class="message-meta">
-        <span>${userData.gender} • ${userData.region}</span>
+        <span>${userData.gender || 'Unknown'} • ${userData.region || 'Unknown'}</span>
         <span>${time}</span>
       </div>
     </div>
@@ -149,9 +391,6 @@ if (form) {
     
     // Clear input
     messageInput.value = '';
-    
-    // Show confirmation
-    showConfirmationMessage('Message sent!', 'success');
   });
 }
 
@@ -269,17 +508,6 @@ function updateConnectionStatus(connected) {
 }
 
 /**
- * Update online users count
- * @param {number} count - Number of online users
- */
-function updateOnlineUsersCount(count) {
-  const onlineCountElement = document.querySelector('.online-count');
-  if (onlineCountElement) {
-    onlineCountElement.textContent = `${count} online`;
-  }
-}
-
-/**
  * Show temporary confirmation message
  * @param {string} message - Message to display
  * @param {string} type - Message type (success/error)
@@ -302,6 +530,7 @@ function showConfirmationMessage(message, type = 'success') {
   confirmation.style.fontWeight = 'bold';
   confirmation.style.fontSize = '14px';
   confirmation.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+  confirmation.style.animation = 'slideIn 0.3s ease-out';
   
   document.body.appendChild(confirmation);
   
@@ -315,6 +544,22 @@ function showConfirmationMessage(message, type = 'success') {
     }, 500);
   }, 2000);
 }
+
+// Add CSS animation for confirmation
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+`;
+document.head.appendChild(style);
 
 // ===================================================
 // ✅ TYPING INDICATORS
@@ -417,12 +662,20 @@ if (joinForm) {
 
     // Update current user
     currentUser = { 
+      ...currentUser,
       name: name, 
       gender: gender, 
       region: region, 
       profilePicture: profilePicture,
       socketId: ''
     };
+
+    // Save to session storage
+    sessionStorage.setItem('chatHookUser', JSON.stringify({
+      name: name,
+      email: currentUser.email || '',
+      picture: profilePicture
+    }));
 
     // Initialize socket if not already
     if (!socket) {
@@ -435,6 +688,29 @@ if (joinForm) {
     // Hide join modal
     if (joinModal) {
       joinModal.style.display = 'none';
+    }
+    
+    // Show profile screen
+    renderProfileScreen(currentUser);
+    
+    // Show profile container
+    const profileContainer = document.getElementById('profile-container');
+    if (profileContainer) profileContainer.style.display = 'block';
+    
+    // Update profile trigger
+    const profileTrigger = document.getElementById('profile-trigger');
+    if (profileTrigger) profileTrigger.textContent = initial;
+    
+    // Update profile info
+    const profileInfo = document.getElementById('profile-info');
+    if (profileInfo) {
+      profileInfo.innerHTML = `
+        <img class="profile-avatar" src="${profilePicture}" alt="${name}">
+        <div>
+          <div class="profile-name">${name}</div>
+          <div class="profile-email">${currentUser.email || ''}</div>
+        </div>
+      `;
     }
     
     // Show welcome message
@@ -452,6 +728,89 @@ if (joinForm) {
 }
 
 // ===================================================
+// ✅ JOIN CHAT BUTTON HANDLER
+// ===================================================
+
+function handleJoinChat() {
+  const name = document.getElementById('join-name')?.value.trim();
+  const birthday = document.getElementById('join-birthday')?.value;
+  const gender = document.getElementById('join-gender')?.value;
+  const region = document.getElementById('join-region')?.value;
+
+  if (!googleLoggedIn) {
+    showConfirmationMessage('Please login with Google first!', 'error');
+    return;
+  }
+
+  if (!name || !birthday || !gender || !region) {
+    showConfirmationMessage('Please fill all fields!', 'error');
+    return;
+  }
+
+  showJoinSuccessAnimation(name);
+}
+
+// ===================================================
+// ✅ JOIN SUCCESS ANIMATION
+// ===================================================
+
+function showJoinSuccessAnimation(userName) {
+  const successAnimation = document.getElementById('join-success-animation');
+  if (successAnimation) {
+    const successMessage = successAnimation.querySelector('.success-message');
+    if (successMessage) {
+      successMessage.textContent = `Welcome ${userName} to Chat Hook!`;
+    }
+    successAnimation.style.display = 'flex';
+    
+    setTimeout(() => {
+      successAnimation.style.display = 'none';
+      // Trigger join form submission
+      const joinForm = document.getElementById('join-form');
+      if (joinForm) {
+        joinForm.dispatchEvent(new Event('submit'));
+      }
+    }, 2000);
+  }
+}
+
+// ===================================================
+// ✅ CHECK JOIN FORM COMPLETION
+// ===================================================
+
+function checkJoinFormComplete() {
+  const name = document.getElementById('join-name')?.value.trim();
+  const birthday = document.getElementById('join-birthday')?.value;
+  const gender = document.getElementById('join-gender')?.value;
+  const region = document.getElementById('join-region')?.value;
+  
+  const joinBtn = document.getElementById('join-chat-btn');
+  
+  if (joinBtn) {
+    if (googleLoggedIn && name && birthday && gender && region) {
+      joinBtn.disabled = false;
+      joinBtn.classList.add('active');
+    } else {
+      joinBtn.disabled = true;
+      joinBtn.classList.remove('active');
+    }
+  }
+}
+
+// Add event listeners for form completion check
+document.addEventListener('DOMContentLoaded', () => {
+  const joinName = document.getElementById('join-name');
+  const joinBirthday = document.getElementById('join-birthday');
+  const joinGender = document.getElementById('join-gender');
+  const joinRegion = document.getElementById('join-region');
+  
+  if (joinName) joinName.addEventListener('input', checkJoinFormComplete);
+  if (joinBirthday) joinBirthday.addEventListener('change', checkJoinFormComplete);
+  if (joinGender) joinGender.addEventListener('change', checkJoinFormComplete);
+  if (joinRegion) joinRegion.addEventListener('change', checkJoinFormComplete);
+});
+
+// ===================================================
 // ✅ NOTIFICATION PERMISSION
 // ===================================================
 
@@ -464,6 +823,20 @@ function requestNotificationPermission() {
 }
 
 // ===================================================
+// ✅ EVENT LISTENERS
+// ===================================================
+
+// Login button event
+if (loginBtn) {
+  loginBtn.addEventListener('click', handleGoogleLogin);
+}
+
+// Logout button event
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', handleLogout);
+}
+
+// ===================================================
 // ✅ PAGE INITIALIZATION
 // ===================================================
 
@@ -471,19 +844,23 @@ window.addEventListener('load', () => {
   console.log('🌐 Chat Hook Application Loaded');
   console.log('🌐 Server URL:', RENDER_URL);
   
+  // Check login status first
+  checkLoginStatus();
+  
   // Request notification permission
   requestNotificationPermission();
   
   // Initialize socket connection
   initializeSocket();
   
-  // Show join modal after short delay
+  // Show join modal if not logged in
   setTimeout(() => {
-    if (joinModal) {
+    const savedUser = sessionStorage.getItem('chatHookUser');
+    if (!savedUser && joinModal) {
       joinModal.style.display = 'flex';
-      // Focus on name input
-      if (joinName) {
-        joinName.focus();
+      const joinNameField = document.getElementById('join-name');
+      if (joinNameField) {
+        joinNameField.focus();
       }
     }
   }, 800);
@@ -511,3 +888,23 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
 });
+
+// ===================================================
+// ✅ EXPORT FUNCTIONS FOR HTML
+// ===================================================
+
+// Make functions globally available for HTML onclick events
+window.handleGoogleLogin = handleGoogleLogin;
+window.handleJoinChat = handleJoinChat;
+window.handleLogout = handleLogout;
+window.checkJoinFormComplete = checkJoinFormComplete;
+window.showJoinSuccessAnimation = showJoinSuccessAnimation;
+window.openAnimationSelector = openAnimationSelector;
+window.closeAnimationSelector = closeAnimationSelector;
+window.submitAnimationSelection = submitAnimationSelection;
+window.activateCustomNameAnimation = activateCustomNameAnimation;
+window.openComedyClub = openComedyClub;
+window.closeComedyClub = closeComedyClub;
+window.getNewJoke = getNewJoke;
+window.shareJokeToChat = shareJokeToChat;
+window.addNewJoke = addNewJoke;

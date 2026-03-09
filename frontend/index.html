@@ -1685,17 +1685,26 @@
   </div>
 
   <!-- ============================================= -->
-  <!-- ✅ SIMPLE MINIMAL FIX - NO SYNTAX ERRORS -->
+  <!-- ✅ FIXED: CORRECT APPCALL IMPORT WITH PATH -->
   <!-- ============================================= -->
 
-  <!-- Appwrite Import -->
+  <!-- Appwrite Import - WITH CORRECT PATH -->
   <script type="module">
-    import { account } from "./appwrite.js";
+    // ✅ CORRECT PATH - with "./"
+    import { Client, Account } from "./node_modules/appwrite/dist/appwrite.js";
+    
+    // Initialize Appwrite
+    const client = new Client()
+        .setEndpoint('https://cloud.appwrite.io/v1')  // Your Appwrite endpoint
+        .setProject('YOUR_PROJECT_ID');                // Your project ID
+    
+    const account = new Account(client);
     window.account = account;
-    console.log("✅ Appwrite loaded");
+    
+    console.log("✅ Appwrite initialized with account:", !!account);
   </script>
 
-  <!-- Main Client Code - ERROR FREE -->
+  <!-- Main Client Code -->
   <script type="module">
     console.log("🔥 CLIENT JS STARTING...");
     
@@ -1716,6 +1725,8 @@
     // Google Login Function
     window.handleGoogleLogin = async function() {
       console.log("🚀 Google Login clicked");
+      console.log("Account object:", window.account); // Debug log
+      
       const btn = document.getElementById('google-login-btn');
       if (btn) {
         btn.disabled = true;
@@ -1723,6 +1734,10 @@
       }
       
       try {
+        if (!window.account) {
+          throw new Error("Appwrite account not initialized");
+        }
+        
         await window.account.createOAuth2Session(
           "google",
           "https://chat-hook-1.onrender.com",
@@ -1730,6 +1745,7 @@
         );
       } catch (error) {
         console.error("Login error:", error);
+        alert("Login failed: " + error.message);
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<i>G</i> Login With Google';
@@ -1850,18 +1866,20 @@
     
     console.log("✅ ALL FUNCTIONS READY");
     console.log("✅ handleGoogleLogin:", typeof window.handleGoogleLogin);
+    console.log("✅ account available:", !!window.account);
   </script>
 
   <!-- Final Test -->
   <script>
     setTimeout(() => {
       console.log("🔍 FINAL CHECK - handleGoogleLogin:", typeof window.handleGoogleLogin);
-      if (typeof window.handleGoogleLogin === 'function') {
-        console.log("✅✅✅ SUCCESS!");
+      console.log("🔍 FINAL CHECK - account:", typeof window.account);
+      if (typeof window.handleGoogleLogin === 'function' && window.account) {
+        console.log("✅✅✅ SUCCESS! Appwrite and functions ready");
       } else {
-        console.error("❌❌❌ FAILED");
+        console.error("❌❌❌ FAILED - Appwrite not initialized");
       }
-    }, 500);
+    }, 1000);
   </script>
 </body>
 </html>

@@ -1,241 +1,182 @@
-const express = require("express");
-const http = require("http");
-const { Server } = require("socket.io");
-const cors = require("cors");
-const path = require("path");
+// index.js - Backend server for Chat Hook
+const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
+const path = require('path');
+const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
+const io = socketIO(server, {
+  cors: {
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.APP_URL 
+      : 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
-// ============================================
-// ✅ MIDDLEWARE
-// ============================================
+const PORT = process.env.PORT || 3000;
+
+// Enable CORS
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.APP_URL 
+    : 'http://localhost:3000',
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// ============================================
-// ✅ SERVE FRONTEND FILES (✅ YAHI LINE HAI!)
-// ============================================
-const frontendPath = path.join(__dirname, "../frontend");
-app.use(express.static(frontendPath));
+// Serve static files
+app.use(express.static(path.join(__dirname, './')));
 
-// ============================================
-// ✅ SOCKET.IO SETUP (RENDER COMPATIBLE)
-// ============================================
-const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  },
-  transports: ['websocket', 'polling'],
-  pingTimeout: 60000,
-  pingInterval: 25000
+// Serve index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// ============================================
-// ✅ HEALTH CHECK (RENDER REQUIRED)
-// ============================================
-app.get("/health", (req, res) => {
-  res.json({
-    status: "healthy",
+// Health check for auto deploy
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
     timestamp: new Date().toISOString(),
-    usersOnline: Object.keys(users).length
+    env: process.env.NODE_ENV || 'development'
   });
 });
 
-// ============================================
-// ✅ USER STORAGE
-// ============================================
-const users = {};
+// Store online users
+let onlineUsers = [];
+let messageHistory = [];
 
-// ============================================
-// ✅ SOCKET.IO LOGIC - COMPLETE FEATURES
-// ============================================
-io.on("connection", (socket) => {
-  console.log("✅ User connected:", socket.id);
-  
-  // Send connection confirmation
-  socket.emit("connection-established", {
-    message: "Connected to Chat Hook server",
-    socketId: socket.id
-  });
+// Socket.io connection handling
+io.on('connection', (socket) => {
+  console.log('New user connected:', socket.id);
 
-  // ============================================
-  // ✅ 1. USER JOINS CHAT (WITH PROFILE)
-  // ============================================
-  socket.on("new-user-joined", (userData) => {
-    console.log("👤 New user joining:", userData);
-    
-    // Validate user data
-    if (!userData || !userData.name || !userData.gender || !userData.region) {
-      socket.emit("join-error", { message: "Please provide all details" });
-      return;
-    }
-    
-    // Store user info
-    users[socket.id] = {
+  // User joins
+  socket.on('user-joined', (userData) => {
+    const newUser = {
+      ...userData,
       id: socket.id,
-      name: userData.name,
-      gender: userData.gender,
-      region: userData.region,
-      profilePicture: userData.profilePicture || "",
-      joinTime: new Date()
+      socketId: socket.id,
+      connectedAt: new Date().toISOString()
     };
     
-    console.log(`✅ ${userData.name} joined the chat`);
+    // Remove existing user with same ID if any
+    onlineUsers = onlineUsers.filter(u => u.id !== socket.id);
+    onlineUsers.push(newUser);
     
-    // Notify the joining user
-    socket.emit("user-joined-self", users[socket.id]);
+    // Send message history to new user
+    socket.emit('message-history', messageHistory);
     
-    // Notify all other users
-    socket.broadcast.emit("user-joined", users[socket.id]);
+    // Broadcast to all users
+    io.emit('online-users', onlineUsers);
     
-    // Update online count for everyone
-    io.emit("online-users-update", {
-      count: Object.keys(users).length,
-      users: Object.values(users).map(u => u.name)
-    });
-  });
-
-  // ============================================
-  // ✅ 2. SEND MESSAGE (WITH USER INFO)
-  // ============================================
-  socket.on("send", (messageData) => {
-    const sender = users[socket.id];
-    
-    if (!sender) {
-      socket.emit("send-error", { message: "Join chat first!" });
-      return;
-    }
-    
-    if (!messageData || !messageData.message || messageData.message.trim() === "") {
-      socket.emit("send-error", { message: "Message cannot be empty" });
-      return;
-    }
-    
-    console.log(`📨 Message from ${sender.name}: ${messageData.message}`);
-    
-    // Prepare message with user info
-    const fullMessage = {
-      message: messageData.message,
+    // Welcome message
+    const welcomeMsg = {
+      text: `👋 Welcome ${newUser.name} to Chat Hook!`,
       user: {
-        name: sender.name,
-        gender: sender.gender,
-        region: sender.region,
-        profilePicture: sender.profilePicture
+        id: 'system',
+        name: 'System',
+        country: 'Chat Hook'
       },
-      timestamp: messageData.timestamp || new Date().toLocaleTimeString(),
-      messageId: Date.now() + "-" + socket.id
+      timestamp: new Date().toISOString()
+    };
+    socket.emit('message', welcomeMsg);
+    
+    // Broadcast join message
+    const joinMsg = {
+      text: `🎉 ${newUser.name} joined the chat!`,
+      user: {
+        id: 'system',
+        name: 'System',
+        country: 'Chat Hook'
+      },
+      timestamp: new Date().toISOString()
+    };
+    socket.broadcast.emit('message', joinMsg);
+  });
+
+  // User updated (profile change)
+  socket.on('user-updated', (updatedUser) => {
+    const index = onlineUsers.findIndex(u => u.id === socket.id);
+    if (index !== -1) {
+      onlineUsers[index] = { ...updatedUser, id: socket.id };
+      io.emit('online-users', onlineUsers);
+      
+      // Broadcast update message
+      const updateMsg = {
+        text: `✏️ ${updatedUser.name} updated their profile`,
+        user: {
+          id: 'system',
+          name: 'System',
+          country: 'Chat Hook'
+        },
+        timestamp: new Date().toISOString()
+      };
+      io.emit('message', updateMsg);
+    }
+  });
+
+  // Send message
+  socket.on('send-message', (messageData) => {
+    const message = {
+      ...messageData,
+      id: Date.now() + Math.random().toString(36)
     };
     
-    // Send to all users except sender
-    socket.broadcast.emit("receive", fullMessage);
+    // Store in history (limit to 100 messages)
+    messageHistory.push(message);
+    if (messageHistory.length > 100) {
+      messageHistory.shift();
+    }
     
-    // Confirm to sender
-    socket.emit("message-sent", {
-      message: messageData.message,
-      timestamp: fullMessage.timestamp
-    });
+    // Broadcast to all users
+    io.emit('message', message);
   });
 
-  // ============================================
-  // ✅ 3. TYPING INDICATORS
-  // ============================================
-  socket.on("typing-start", () => {
-    const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit("user-typing", user.name);
-    }
+  // Get user by ID
+  socket.on('get-user', (userId, callback) => {
+    const user = onlineUsers.find(u => u.id === userId);
+    callback(user || null);
   });
 
-  socket.on("typing-stop", () => {
-    const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit("user-stop-typing", user.name);
-    }
-  });
-
-  // ============================================
-  // ✅ 4. USER DISCONNECTS
-  // ============================================
-  socket.on("disconnect", () => {
-    const user = users[socket.id];
+  // Disconnect
+  socket.on('disconnect', () => {
+    const user = onlineUsers.find(u => u.id === socket.id);
+    onlineUsers = onlineUsers.filter(u => u.id !== socket.id);
+    
+    io.emit('online-users', onlineUsers);
     
     if (user) {
-      console.log(`👋 ${user.name} disconnected`);
-      
-      // Notify all users
-      io.emit("left", {
-        name: user.name,
-        gender: user.gender,
-        region: user.region,
-        profilePicture: user.profilePicture
-      });
-      
-      // Remove user
-      delete users[socket.id];
-      
-      // Update online count
-      io.emit("online-users-update", {
-        count: Object.keys(users).length,
-        users: Object.values(users).map(u => u.name)
-      });
-    } else {
-      console.log("ℹ️ Anonymous user disconnected:", socket.id);
+      const leaveMsg = {
+        text: `👋 ${user.name} left the chat`,
+        user: {
+          id: 'system',
+          name: 'System',
+          country: 'Chat Hook'
+        },
+        timestamp: new Date().toISOString()
+      };
+      io.emit('message', leaveMsg);
     }
-  });
-
-  // ============================================
-  // ✅ 5. ERROR HANDLING
-  // ============================================
-  socket.on("error", (error) => {
-    console.error("Socket error:", error);
+    
+    console.log('User disconnected:', socket.id);
   });
 });
 
-// ============================================
-// ✅ CONNECTED USERS API
-// ============================================
-app.get("/connected-users", (req, res) => {
-  res.json({
-    success: true,
-    totalUsers: Object.keys(users).length,
-    users: Object.values(users).map(user => ({
-      name: user.name,
-      gender: user.gender,
-      region: user.region,
-      onlineSince: user.joinTime
-    }))
+// Start server
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🌐 URL: http://localhost:${PORT}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Closing server...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
   });
-});
-
-// ============================================
-// ✅ SERVE FRONTEND FOR ALL ROUTES
-// ============================================
-app.get("*", (req, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
-});
-
-// ============================================
-// ✅ START SERVER (RENDER COMPATIBLE)
-// ============================================
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log("=".repeat(50));
-  console.log("🚀 CHAT HOOK SERVER STARTED");
-  console.log("=".repeat(50));
-  console.log(`📡 Port: ${PORT}`);
-  console.log(`🌐 URL: https://chat-hook-1.onrender.com`);
-  console.log(`📁 Frontend: ${frontendPath}`);
-  console.log("=".repeat(50)); 
-  console.log("✅ Endpoints:");
-  console.log("   /              - Chat application");
-  console.log("   /health        - Health check");
-  console.log("   /connected-users - Online users");
-  console.log("=".repeat(50));
 });

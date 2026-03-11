@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat Hook</title>
+  <title>Chat Hook - 16 Avatar Animations</title>
 
   <!-- Socket.IO CDN -->
   <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -55,7 +55,6 @@
       width: 45px !important;
       height: 45px !important;
       border-radius: 50% !important;
-      background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
       color: white !important;
       display: flex !important;
       align-items: center !important;
@@ -65,6 +64,14 @@
       border: 2px solid var(--accent) !important;
       box-shadow: 0 0 15px rgba(0, 255, 136, 0.3) !important;
       overflow: hidden !important;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .user-avatar:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
     }
 
     /* Message user avatar fix */
@@ -74,6 +81,12 @@
       font-size: 14px !important;
       margin-right: 10px !important;
       border-width: 1px !important;
+      cursor: default;
+    }
+
+    .message .user-avatar:hover {
+      transform: none;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
     }
 
     /* Grid Scan Animation */
@@ -839,41 +852,6 @@
       color: rgba(255, 255, 255, 0.1);
       animation: cena-theme-pulse 8s infinite;
       text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
-      z-index: 1;
-    }
-
-    .cena-image {
-      position: absolute;
-      width: 300px;
-      height: 400px;
-      background-image: url('https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/John_Cena_July_2018.jpg/640px-John_Cena_July_2018.jpg');
-      background-size: cover;
-      background-position: center;
-      border-radius: 10px;
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
-      animation: cena-entrance 3s ease-out, cena-float 6s ease-in-out infinite 3s;
-      z-index: 2;
-      filter: brightness(1.2) contrast(1.1);
-    }
-
-    .cena-sparkle {
-      position: absolute;
-      width: 10px;
-      height: 10px;
-      background: white;
-      border-radius: 50%;
-      box-shadow: 0 0 10px white, 0 0 20px white;
-      animation: cena-sparkle 2s infinite;
-      z-index: 3;
-    }
-
-    .cena-punch {
-      position: absolute;
-      width: 100px;
-      height: 100px;
-      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
-      border-radius: 50%;
-      animation: cena-punch 1.5s infinite;
       z-index: 1;
     }
 
@@ -2140,7 +2118,6 @@
       border-radius: 50% !important;
       margin-right: 10px !important;
       border: 2px solid var(--primary) !important;
-      background: linear-gradient(135deg, var(--primary), var(--secondary)) !important;
       color: white !important;
       display: flex !important;
       align-items: center !important;
@@ -2262,11 +2239,11 @@
       left: 100%;
     }
 
-    /* Comedy Club Button */
+    /* Comedy Club Button - MOVED BELOW Animation Button */
     .comedy-club-container {
       position: fixed;
-      top: 15px;
-      right: 15px;
+      top: 70px; /* Positioned below animation button */
+      left: 15px;
       z-index: 1000;
     }
 
@@ -2461,6 +2438,411 @@
     @keyframes floatUp {
       0% { transform: translateY(0); opacity: 1; }
       100% { transform: translateY(-80px); opacity: 0; }
+    }
+
+    /* Profile Modal */
+    .profile-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 5, 10, 0.95);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 3000;
+      backdrop-filter: blur(10px);
+    }
+
+    .profile-card {
+      background: var(--card-bg);
+      padding: 25px;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 80vh;
+      overflow-y: auto;
+      color: var(--text);
+      border: 1px solid rgba(0, 204, 255, 0.2);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+    }
+
+    .profile-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
+    }
+
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .profile-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      border: 2px solid var(--accent);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .profile-info h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .profile-info p {
+      margin: 5px 0 0;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+
+    .profile-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 12px;
+    }
+
+    .profile-section h4 {
+      margin: 0 0 10px 0;
+      color: var(--accent);
+      font-size: 14px;
+    }
+
+    .name-change-area {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .name-change-area input {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid rgba(100,100,255,0.3);
+      border-radius: 8px;
+      background: rgba(30,30,50,0.7);
+      color: var(--text);
+    }
+
+    /* Avatar Grid - 16 Animations */
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 15px 0;
+    }
+
+    .avatar-option {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      background: rgba(30,30,50,0.7);
+      border: 2px solid rgba(100,100,255,0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar-option:hover {
+      transform: scale(1.05);
+      border-color: var(--primary);
+      box-shadow: 0 0 15px var(--primary);
+    }
+
+    .avatar-option.selected {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent);
+    }
+
+    /* 16 Avatar Animation Styles */
+    .avatar-gradient {
+      background: linear-gradient(135deg, #ff0080, #8000ff);
+      animation: gradientShift 3s infinite alternate;
+    }
+
+    @keyframes gradientShift {
+      0% { background: linear-gradient(135deg, #ff0080, #8000ff); }
+      100% { background: linear-gradient(135deg, #8000ff, #ff0080); }
+    }
+
+    .avatar-neon {
+      background: #0cf;
+      box-shadow: 0 0 10px #0cf, 0 0 20px #0cf;
+      animation: neonPulse 1.5s infinite alternate;
+    }
+
+    @keyframes neonPulse {
+      0% { box-shadow: 0 0 5px #0cf, 0 0 10px #0cf; }
+      100% { box-shadow: 0 0 15px #0cf, 0 0 30px #0cf; }
+    }
+
+    .avatar-spin {
+      background: conic-gradient(from 0deg, #ff6b6b, #feca57, #48dbfb, #ff6b6b);
+      animation: spin 3s infinite linear;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .avatar-wave {
+      background: linear-gradient(45deg, #0cf, #8a2be2, #00ff88);
+      background-size: 200% 200%;
+      animation: wave 3s infinite ease-in-out;
+    }
+
+    @keyframes wave {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    .avatar-glitch {
+      background: black;
+      position: relative;
+      color: #0cf;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: glitchAvatar 2s infinite;
+    }
+
+    .avatar-glitch::before {
+      content: "⚡";
+      position: absolute;
+      animation: glitch1 2s infinite;
+    }
+
+    .avatar-glitch::after {
+      content: "⚡";
+      position: absolute;
+      animation: glitch2 2s infinite;
+    }
+
+    @keyframes glitch1 {
+      0%, 100% { transform: translate(0, 0); opacity: 1; color: #0cf; }
+      25% { transform: translate(-2px, -2px); color: #f0f; }
+      50% { transform: translate(2px, 2px); color: #0ff; }
+      75% { transform: translate(-2px, 2px); color: #ff0; }
+    }
+
+    @keyframes glitch2 {
+      0%, 100% { transform: translate(0, 0); opacity: 0.7; color: #f0f; }
+      25% { transform: translate(2px, 2px); color: #ff0; }
+      50% { transform: translate(-2px, -2px); color: #f0f; }
+      75% { transform: translate(2px, -2px); color: #0ff; }
+    }
+
+    .avatar-hologram {
+      background: linear-gradient(45deg, #00ff88, #0cf, #8a2be2);
+      filter: blur(1px);
+      animation: hologram 4s infinite;
+    }
+
+    @keyframes hologram {
+      0%, 100% { opacity: 0.7; filter: blur(1px); }
+      50% { opacity: 1; filter: blur(2px); }
+    }
+
+    .avatar-liquid {
+      background: radial-gradient(circle at 30% 30%, #bdc3c7, #2c3e50);
+      animation: liquidMorph 5s infinite ease-in-out;
+    }
+
+    @keyframes liquidMorph {
+      0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+      25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+      50% { border-radius: 70% 30% 50% 50% / 30% 70% 30% 70%; }
+      75% { border-radius: 40% 60% 70% 30% / 60% 40% 60% 40%; }
+    }
+
+    .avatar-fire {
+      background: radial-gradient(circle, #ff9a00, #ff6b00);
+      animation: fire 2s infinite alternate;
+    }
+
+    @keyframes fire {
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.1); filter: brightness(1.3); }
+    }
+
+    .avatar-matrix {
+      background: #000;
+      color: #0f0;
+      font-family: monospace;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: matrixRain 3s infinite;
+    }
+
+    .avatar-matrix::before {
+      content: "0";
+      animation: matrixText 1s infinite;
+    }
+
+    @keyframes matrixText {
+      0% { content: "0"; }
+      50% { content: "1"; }
+      100% { content: "0"; }
+    }
+
+    .avatar-aurora {
+      background: linear-gradient(45deg, #0f2027, #203a43, #2c5364);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .avatar-aurora::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(45deg, transparent 30%, rgba(0,255,136,0.3) 50%, transparent 70%);
+      animation: auroraMove 5s infinite linear;
+    }
+
+    @keyframes auroraMove {
+      0% { transform: translateX(-30%) translateY(-30%) rotate(0deg); }
+      100% { transform: translateX(30%) translateY(30%) rotate(10deg); }
+    }
+
+    .avatar-quantum {
+      background: radial-gradient(circle at 30% 30%, #0cf, #8a2be2);
+      animation: quantum 3s infinite;
+    }
+
+    @keyframes quantum {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(0.8); opacity: 0.8; }
+    }
+
+    .avatar-cyber {
+      background: linear-gradient(45deg, #000428, #004e92);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #0cf;
+      font-size: 20px;
+    }
+
+    .avatar-cyber::before {
+      content: '⚡';
+      animation: cyberPulse 1.5s infinite;
+    }
+
+    @keyframes cyberPulse {
+      0%, 100% { opacity: 1; text-shadow: 0 0 5px #0cf; }
+      50% { opacity: 0.5; text-shadow: 0 0 15px #0cf; }
+    }
+
+    .avatar-crystal {
+      background: linear-gradient(135deg, #00ff88, #0cf);
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      animation: crystalSpin 6s infinite linear;
+    }
+
+    @keyframes crystalSpin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .avatar-bubble {
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%);
+      border: 1px solid rgba(255,255,255,0.5);
+      animation: bubbleFloat 4s infinite ease-in-out;
+    }
+
+    @keyframes bubbleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-5px); }
+    }
+
+    .avatar-galaxy {
+      background: radial-gradient(circle at 20% 20%, #ff6b6b, #8a2be2, #0cf);
+      animation: galaxySpin 10s infinite linear;
+    }
+
+    @keyframes galaxySpin {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.1); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+
+    .avatar-lightning {
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      color: #ff0;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .avatar-lightning::before {
+      content: '⚡';
+      animation: lightning 2s infinite;
+    }
+
+    @keyframes lightning {
+      0%, 95%, 98% { opacity: 0.3; text-shadow: 0 0 5px #ff0; }
+      96%, 99% { opacity: 1; text-shadow: 0 0 20px #ff0, 0 0 40px #ff0; }
+    }
+
+    .avatar-plasma {
+      background: radial-gradient(circle at 30% 30%, #ff0080, #8000ff, #00ff88);
+      filter: blur(2px);
+      animation: plasma 8s infinite alternate;
+    }
+
+    @keyframes plasma {
+      0% { filter: blur(2px) hue-rotate(0deg); }
+      100% { filter: blur(4px) hue-rotate(90deg); }
+    }
+
+    /* Close button */
+    .close-profile-btn {
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      border: 1px solid rgba(100,100,255,0.3);
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 15px;
+      width: 100%;
+      transition: all 0.3s ease;
+    }
+
+    .close-profile-btn:hover {
+      background: rgba(255,255,255,0.2);
     }
 
     /* Join Modal */
@@ -2716,8 +3098,13 @@
     <button class="animation-btn" onclick="openAnimationSelector()">✨ Change Animation</button>
   </div>
 
-  <!-- FIXED: User Avatar Display -->
-  <div class="user-avatar" id="userAvatar"></div>
+  <!-- Comedy Club Button - NOW BELOW Change Animation -->
+  <div class="comedy-club-container">
+    <button class="comedy-btn" onclick="openComedyClub()">😂 Comedy Club</button>
+  </div>
+
+  <!-- FIXED: User Avatar Display - CLICKABLE for Profile -->
+  <div class="user-avatar" id="userAvatar" onclick="openProfileModal()"></div>
 
   <!-- ===== FIXED LOGO - MOVED TO TOP ===== -->
   <div class="logo-container">
@@ -2737,19 +3124,11 @@
       <div class="pulse-ring"></div>
     </div>
     
-    <!-- YOUR LOGO - REPLACE WITH YOUR ACTUAL LOGO URL -->
-    <!-- <img class="big-logo" src="YOUR_LOGO_URL_HERE" alt="Chat Hook Logo" /> -->
-    
     <!-- TEMPORARY TEXT LOGO - Shows "Chat Hook" with cool style -->
     <div class="big-logo" style="font-size: 28px; font-weight: bold; color: #0cf; text-shadow: 0 0 15px #0cf, 0 0 30px #8a2be2; background: transparent; line-height: 1.2;">
       CHAT<br>HOOK
       <div style="font-size: 10px; color: var(--accent); text-shadow: 0 0 8px var(--accent); margin-top: 3px;">Where Every Chat Matters</div>
     </div>
-  </div>
-
-  <!-- Comedy Club Button -->
-  <div class="comedy-club-container">
-    <button class="comedy-btn" onclick="openComedyClub()">😂 Comedy Club</button>
   </div>
 
   <!-- Message container -->
@@ -2949,6 +3328,36 @@
         <input type="text" class="add-joke-input" id="new-joke-input" placeholder="Write a funny joke...">
         <button class="submit-joke-btn" onclick="addNewJoke()">Submit Joke</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="profile-modal">
+    <div class="profile-card">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profile-avatar-display">U</div>
+        <div class="profile-info">
+          <h3 id="profile-name">User</h3>
+          <p id="profile-region">Region</p>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h4>✏️ Change Name</h4>
+        <div class="name-change-area">
+          <input type="text" id="new-name-input" placeholder="Enter new name" maxlength="20">
+          <button class="btn" onclick="changeName()" style="padding: 10px 15px; height: auto;">Change</button>
+        </div>
+      </div>
+
+      <div class="profile-section">
+        <h4>🖼️ Change Profile Picture (16 Animations)</h4>
+        <div class="avatar-grid" id="avatar-grid">
+          <!-- 16 avatar options will be generated by JavaScript -->
+        </div>
+      </div>
+
+      <button class="close-profile-btn" onclick="closeProfileModal()">Close</button>
     </div>
   </div>
 
@@ -3186,7 +3595,7 @@
     const messageContainer = document.getElementById('message-container');
     const userAvatar = document.getElementById('userAvatar');
 
-    let currentUser = { name: '', gender: '', region: '', profilePicture: '' };
+    let currentUser = { name: '', gender: '', region: '', profilePicture: '', avatarStyle: 'avatar-gradient' };
     let currentJoke = '';
     let jokeCount = 0;
     let likeCount = 0;
@@ -3803,18 +4212,18 @@
 
       // Update user avatar
       userAvatar.textContent = name.charAt(0).toUpperCase();
+      userAvatar.className = 'user-avatar avatar-gradient';
       userAvatar.style.display = 'flex';
 
       currentUser = { 
         name: name, 
         gender: gender, 
         region: region, 
-        profilePicture: '' 
+        profilePicture: '',
+        avatarStyle: 'avatar-gradient'
       };
 
       // Generate profile picture based on name
-      const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
-      const color = colors[name.length % colors.length];
       const initial = name.charAt(0).toUpperCase();
       
       // Create SVG profile picture
@@ -3822,8 +4231,8 @@
         <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:${color};stop-opacity:1" />
-              <stop offset="100%" style="stop-color:${color}99;stop-opacity:1" />
+              <stop offset="0%" style="stop-color:#0cf;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#8a2be2;stop-opacity:1" />
             </linearGradient>
           </defs>
           <circle cx="50" cy="50" r="50" fill="url(#grad)"/>
@@ -3950,7 +4359,10 @@
       });
       
       // Show selected animation
-      document.getElementById(`${animationType}-animation`).style.display = 'block';
+      const selectedElement = document.getElementById(`${animationType}-animation`);
+      if (selectedElement) {
+        selectedElement.style.display = 'block';
+      }
       
       currentAnimation = animationType;
       
@@ -4176,11 +4588,10 @@
       
       // Get initial for avatar
       const initial = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
-      const colors = ['#0cf', '#8a2be2', '#00ff88', '#ff6b6b', '#feca57', '#48dbfb'];
-      const color = userData.name ? colors[userData.name.length % colors.length] : colors[0];
       
-      // Create avatar HTML
-      const avatarHtml = `<div class="user-avatar" style="background: linear-gradient(135deg, ${color}, ${color}99); display: flex; align-items: center; justify-content: center;">${initial}</div>`;
+      // Create avatar HTML with animation class if available
+      const avatarClass = userData.avatarStyle || 'avatar-gradient';
+      const avatarHtml = `<div class="user-avatar ${avatarClass}" style="display: flex; align-items: center; justify-content: center;">${initial}</div>`;
       
       messageElement.innerHTML = `
         <div class="message-bubble">
@@ -4279,6 +4690,119 @@
           setTimeout(() => { if (comedyCard.contains(laughter)) comedyCard.removeChild(laughter); }, 2000);
         }, i * 200);
       }
+    }
+
+    // Profile Modal Functions
+    function openProfileModal() {
+      if (!currentUser.name) {
+        alert('Please join the chat first!');
+        return;
+      }
+      
+      document.getElementById('profile-modal').style.display = 'flex';
+      document.getElementById('profile-name').textContent = currentUser.name;
+      document.getElementById('profile-region').textContent = currentUser.region || 'Unknown';
+      
+      // Update avatar display
+      const profileAvatar = document.getElementById('profile-avatar-display');
+      profileAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+      profileAvatar.className = `profile-avatar ${currentUser.avatarStyle || 'avatar-gradient'}`;
+      
+      // Generate avatar grid
+      generateAvatarGrid();
+    }
+    
+    function closeProfileModal() {
+      document.getElementById('profile-modal').style.display = 'none';
+    }
+    
+    function changeName() {
+      const newName = document.getElementById('new-name-input').value.trim();
+      
+      if (!newName) {
+        alert('Please enter a new name');
+        return;
+      }
+      
+      // Update name
+      const oldName = currentUser.name;
+      currentUser.name = newName;
+      
+      // Update UI
+      userAvatar.textContent = newName.charAt(0).toUpperCase();
+      document.getElementById('profile-name').textContent = newName;
+      document.getElementById('profile-avatar-display').textContent = newName.charAt(0).toUpperCase();
+      
+      // Clear input
+      document.getElementById('new-name-input').value = '';
+      
+      // Show success message
+      showConfirmationMessage(`Name changed to ${newName}!`);
+      
+      // Notify other users
+      appendSystemMessage(`${oldName} changed their name to ${newName}`);
+      socket.emit('name-changed', { oldName, newName, user: currentUser });
+    }
+    
+    function generateAvatarGrid() {
+      const grid = document.getElementById('avatar-grid');
+      grid.innerHTML = '';
+      
+      const avatars = [
+        { class: 'avatar-gradient', name: 'Gradient Flow' },
+        { class: 'avatar-neon', name: 'Neon Pulse' },
+        { class: 'avatar-spin', name: 'Cosmic Spin' },
+        { class: 'avatar-wave', name: 'Rainbow Wave' },
+        { class: 'avatar-glitch', name: 'Glitch Effect' },
+        { class: 'avatar-hologram', name: 'Hologram' },
+        { class: 'avatar-liquid', name: 'Liquid Metal' },
+        { class: 'avatar-fire', name: 'Fire Particle' },
+        { class: 'avatar-matrix', name: 'Matrix Code' },
+        { class: 'avatar-aurora', name: 'Aurora' },
+        { class: 'avatar-quantum', name: 'Quantum Ripple' },
+        { class: 'avatar-cyber', name: 'Cyber Grid' },
+        { class: 'avatar-crystal', name: 'Crystal Shine' },
+        { class: 'avatar-bubble', name: 'Bubble Universe' },
+        { class: 'avatar-galaxy', name: 'Galaxy Spin' },
+        { class: 'avatar-lightning', name: 'Lightning Strike' }
+      ];
+      
+      avatars.forEach((avatar) => {
+        const option = document.createElement('div');
+        option.className = `avatar-option ${avatar.class}`;
+        if (currentUser.avatarStyle === avatar.class) {
+          option.classList.add('selected');
+        }
+        option.setAttribute('data-avatar', avatar.class);
+        option.setAttribute('data-name', avatar.name);
+        option.onclick = (e) => selectAvatar(avatar.class, e);
+        grid.appendChild(option);
+      });
+    }
+    
+    function selectAvatar(avatarClass, event) {
+      // Update selected state
+      document.querySelectorAll('.avatar-option').forEach(opt => {
+        opt.classList.remove('selected');
+      });
+      event.currentTarget.classList.add('selected');
+      
+      // Update user avatar style
+      currentUser.avatarStyle = avatarClass;
+      
+      // Apply to main avatar
+      userAvatar.className = `user-avatar ${avatarClass}`;
+      userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+      
+      // Update profile avatar
+      document.getElementById('profile-avatar-display').className = `profile-avatar ${avatarClass}`;
+      
+      // Show confirmation
+      const avatarName = event.currentTarget.getAttribute('data-name') || 'Avatar';
+      showConfirmationMessage(`${avatarName} avatar selected!`);
+      
+      // Notify other users
+      socket.emit('avatar-changed', { user: currentUser, avatarStyle: avatarClass });
     }
 
     // Join modal functionality

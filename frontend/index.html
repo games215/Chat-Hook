@@ -1,1188 +1,1063 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chat Hook - 16 Avatar Animations</title>
-
-  <!-- Socket.IO CDN -->
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-  <!-- Three.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-  <style>
-    /* Base styles and futuristic dark theme */
-    :root {
-      --primary: #0cf;
-      --secondary: #8a2be2;
-      --accent: #00ff88;
-      --dark-bg: #0a0a12;
-      --darker-bg: #050508;
-      --card-bg: rgba(20, 20, 30, 0.8);
-      --text: #e0e0ff;
-      --text-muted: #a0a0c0;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      background: var(--dark-bg);
-      color: var(--text);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    /* Animation containers - all hidden by default */
-    .animation-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      overflow: hidden;
-      display: none;
-    }
-
-    /* ===== FIXED USER AVATAR STYLES ===== */
-    .user-avatar {
-      width: 45px !important;
-      height: 45px !important;
-      border-radius: 50% !important;
-      color: white !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      font-weight: bold !important;
-      font-size: 20px !important;
-      border: 2px solid var(--accent) !important;
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3) !important;
-      overflow: hidden !important;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-    }
-
-    .user-avatar:hover {
-      transform: scale(1.05);
-      box-shadow: 0 0 25px rgba(0, 255, 136, 0.6);
-    }
-
-    /* Message user avatar fix */
-    .message .user-avatar {
-      width: 30px !important;
-      height: 30px !important;
-      font-size: 14px !important;
-      margin-right: 10px !important;
-      border-width: 1px !important;
-      cursor: default;
-    }
-
-    .message .user-avatar:hover {
-      transform: none;
-      box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-    }
-
-    /* ===== FIXED MESSAGE CONTAINER - PROPER SPACING ===== */
-    .message-container {
-      position: fixed;
-      top: 100px;
-      bottom: 80px;
-      left: 0;
-      right: 0;
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-      overflow-y: auto;
-      overflow-x: hidden;
-      scroll-behavior: smooth;
-    }
-
-    /* FIXED: Message styling with proper gap */
-    .message {
-      margin-bottom: 16px !important;
-      animation: messageSlide 0.3s ease-out;
-      display: flex;
-      align-items: flex-start;
-    }
-
-    .message:last-child {
-      margin-bottom: 0 !important;
-    }
-
-    .message.own {
-      justify-content: flex-end;
-    }
-
-    .message-bubble {
-      max-width: 70%;
-      padding: 12px 18px;
-      border-radius: 20px;
-      position: relative;
-      backdrop-filter: blur(10px);
-    }
-
-    .message.other .message-bubble {
-      background: rgba(30, 30, 50, 0.7);
-      border: 1px solid rgba(100, 100, 255, 0.2);
-      border-bottom-left-radius: 5px;
-    }
-
-    .message.own .message-bubble {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      border-bottom-right-radius: 5px;
-      box-shadow: 0 5px 15px rgba(0, 204, 255, 0.3);
-    }
-
-    .message-user {
-      display: flex;
-      align-items: center;
-      margin-bottom: 8px;
-      gap: 8px;
-    }
-
-    .message .user-avatar {
-      width: 30px !important;
-      height: 30px !important;
-      border-radius: 50% !important;
-      border: 2px solid var(--primary) !important;
-      color: white !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      font-size: 14px !important;
-      font-weight: bold !important;
-    }
-
-    .user-name {
-      font-weight: bold;
-      font-size: 14px;
-    }
-
-    .message.own .user-name {
-      color: var(--accent);
-    }
-
-    .message-content {
-      font-size: 15px;
-      line-height: 1.5;
-      word-wrap: break-word;
-    }
-
-    .message-meta {
-      font-size: 11px;
-      opacity: 0.7;
-      margin-top: 8px;
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-    }
-
-    @keyframes messageSlide {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* ===== FIXED SEND CONTAINER ===== */
-    #send-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(10, 10, 20, 0.95);
-      backdrop-filter: blur(15px);
-      padding: 15px 20px;
-      border-top: 1px solid rgba(0, 204, 255, 0.2);
-      box-sizing: border-box;
-      z-index: 100;
-      box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
-    }
-
-    #messageInp {
-      flex: 1;
-      max-width: 800px;
-      border: none;
-      height: 45px;
-      border-radius: 25px;
-      padding: 0 20px;
-      background: rgba(30, 30, 50, 0.9);
-      color: var(--text);
-      font-size: 15px;
-      outline: none;
-      border: 1px solid rgba(100, 100, 255, 0.2);
-      transition: all 0.3s ease;
-    }
-
-    #messageInp:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 15px rgba(0, 204, 255, 0.3);
-      background: rgba(40, 40, 60, 0.95);
-    }
-
-    .btn {
-      cursor: pointer;
-      border: none;
-      height: 45px;
-      padding: 0 25px;
-      border-radius: 25px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      font-weight: 600;
-      font-size: 15px;
-      transition: all 0.3s ease;
-    }
-
-    .btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(0, 204, 255, 0.4);
-    }
-
-    /* Animation Selector Button */
-    .animation-selector-container {
-      position: fixed;
-      top: 15px;
-      left: 15px;
-      z-index: 1000;
-    }
-
-    .animation-btn {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 14px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-    }
-
-    .animation-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(0, 204, 255, 0.4);
-    }
-
-    /* Comedy Club Button */
-    .comedy-club-container {
-      position: fixed;
-      top: 70px;
-      left: 15px;
-      z-index: 1000;
-    }
-
-    .comedy-btn {
-      background: linear-gradient(135deg, var(--accent), #ff6b6b);
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 14px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-    }
-
-    .comedy-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(0, 255, 136, 0.4);
-    }
-
-    /* Logo Container */
-    .logo-container {
-      position: fixed;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      text-align: center;
-      width: auto;
-      pointer-events: none;
-    }
-
-    .big-logo {
-      font-size: 28px;
-      font-weight: bold;
-      color: #0cf;
-      text-shadow: 0 0 15px #0cf, 0 0 30px #8a2be2;
-      background: transparent;
-      line-height: 1.2;
-      text-align: center;
-    }
-
-    .big-logo div {
-      font-size: 10px;
-      color: var(--accent);
-      text-shadow: 0 0 8px var(--accent);
-      margin-top: 3px;
-    }
-
-    /* User Avatar fixed position */
-    #userAvatar {
-      position: fixed;
-      top: 15px;
-      right: 20px;
-      z-index: 1000;
-    }
-
-    /* Join Modal */
-    .join-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(5, 5, 10, 0.95);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      backdrop-filter: blur(10px);
-    }
-
-    .join-card {
-      background: var(--card-bg);
-      padding: 30px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 400px;
-      border: 1px solid rgba(0, 204, 255, 0.2);
-      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-    }
-
-    .join-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
-    }
-
-    .join-card h2 {
-      margin: 0 0 20px 0;
-      text-align: center;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      font-size: 28px;
-    }
-
-    .join-card input, .join-card select {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid rgba(100, 100, 255, 0.3);
-      border-radius: 8px;
-      background: rgba(30, 30, 50, 0.7);
-      color: var(--text);
-      font-size: 14px;
-    }
-
-    .join-card input:focus, .join-card select:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 10px rgba(0, 204, 255, 0.3);
-    }
-
-    .join-card button {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border: none;
-      border-radius: 8px;
-      margin-top: 15px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .join-card button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 7px 20px rgba(0, 204, 255, 0.4);
-    }
-
-    /* Profile Modal */
-    .profile-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(5, 5, 10, 0.95);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 3000;
-      backdrop-filter: blur(10px);
-    }
-
-    .profile-card {
-      background: var(--card-bg);
-      padding: 25px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 500px;
-      max-height: 80vh;
-      overflow-y: auto;
-      color: var(--text);
-      border: 1px solid rgba(0, 204, 255, 0.2);
-      position: relative;
-    }
-
-    .profile-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 5px;
-      background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
-    }
-
-    .profile-header {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 20px;
-      padding-bottom: 15px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .profile-avatar {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: bold;
-      color: white;
-      border: 2px solid var(--accent);
-    }
-
-    .profile-info h3 {
-      margin: 0;
-      font-size: 20px;
-    }
-
-    .profile-info p {
-      margin: 5px 0 0;
-      font-size: 12px;
-      opacity: 0.7;
-    }
-
-    .profile-section {
-      margin: 20px 0;
-      padding: 15px;
-      background: rgba(0,0,0,0.2);
-      border-radius: 12px;
-    }
-
-    .profile-section h4 {
-      margin: 0 0 10px 0;
-      color: var(--accent);
-      font-size: 14px;
-    }
-
-    .name-change-area {
-      display: flex;
-      gap: 10px;
-    }
-
-    .name-change-area input {
-      flex: 1;
-      padding: 10px;
-      border: 1px solid rgba(100,100,255,0.3);
-      border-radius: 8px;
-      background: rgba(30,30,50,0.7);
-      color: var(--text);
-    }
-
-    /* Avatar Grid - 16 Animations */
-    .avatar-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin: 15px 0;
-    }
-
-    .avatar-option {
-      aspect-ratio: 1;
-      border-radius: 12px;
-      background: rgba(30,30,50,0.7);
-      border: 2px solid rgba(100,100,255,0.3);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .avatar-option:hover {
-      transform: scale(1.05);
-      border-color: var(--primary);
-      box-shadow: 0 0 15px var(--primary);
-    }
-
-    .avatar-option.selected {
-      border-color: var(--accent);
-      box-shadow: 0 0 20px var(--accent);
-    }
-
-    /* 16 Avatar Animation Styles */
-    .avatar-gradient { background: linear-gradient(135deg, #ff0080, #8000ff); animation: gradientShift 3s infinite alternate; }
-    @keyframes gradientShift { 0% { background: linear-gradient(135deg, #ff0080, #8000ff); } 100% { background: linear-gradient(135deg, #8000ff, #ff0080); } }
-    
-    .avatar-neon { background: #0cf; box-shadow: 0 0 10px #0cf; animation: neonPulse 1.5s infinite alternate; }
-    @keyframes neonPulse { 0% { box-shadow: 0 0 5px #0cf; } 100% { box-shadow: 0 0 20px #0cf; } }
-    
-    .avatar-spin { background: conic-gradient(from 0deg, #ff6b6b, #feca57, #48dbfb, #ff6b6b); animation: spin 3s infinite linear; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
-    .avatar-wave { background: linear-gradient(45deg, #0cf, #8a2be2, #00ff88); background-size: 200% 200%; animation: wave 3s infinite; }
-    @keyframes wave { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    
-    .avatar-glitch { background: black; color: #0cf; font-size: 20px; display: flex; align-items: center; justify-content: center; animation: glitchAvatar 2s infinite; }
-    .avatar-glitch::before { content: "⚡"; animation: glitch1 2s infinite; }
-    @keyframes glitch1 { 0%,100% { transform: translate(0,0); color: #0cf; } 25% { transform: translate(-2px,-2px); color: #f0f; } 50% { transform: translate(2px,2px); color: #0ff; } }
-    
-    .avatar-hologram { background: linear-gradient(45deg, #00ff88, #0cf, #8a2be2); animation: hologram 4s infinite; }
-    @keyframes hologram { 0%,100% { opacity: 0.7; filter: blur(1px); } 50% { opacity: 1; filter: blur(2px); } }
-    
-    .avatar-liquid { background: radial-gradient(circle at 30% 30%, #bdc3c7, #2c3e50); animation: liquidMorph 5s infinite; }
-    @keyframes liquidMorph { 0%,100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; } 50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; } }
-    
-    .avatar-fire { background: radial-gradient(circle, #ff9a00, #ff6b00); animation: fire 2s infinite alternate; }
-    @keyframes fire { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
-    
-    .avatar-matrix { background: #000; color: #0f0; font-family: monospace; font-size: 24px; display: flex; align-items: center; justify-content: center; animation: matrixText 1s infinite; }
-    @keyframes matrixText { 0% { content: "0"; } 50% { content: "1"; } 100% { content: "0"; } }
-    
-    .avatar-aurora { background: linear-gradient(45deg, #0f2027, #203a43, #2c5364); position: relative; overflow: hidden; }
-    .avatar-aurora::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(45deg, transparent 30%, rgba(0,255,136,0.3) 50%, transparent 70%); animation: auroraMove 5s infinite linear; }
-    @keyframes auroraMove { 0% { transform: translateX(-30%) translateY(-30%); } 100% { transform: translateX(30%) translateY(30%); } }
-    
-    .avatar-quantum { background: radial-gradient(circle at 30% 30%, #0cf, #8a2be2); animation: quantum 3s infinite; }
-    @keyframes quantum { 0%,100% { transform: scale(1); } 50% { transform: scale(0.8); } }
-    
-    .avatar-cyber { background: linear-gradient(45deg, #000428, #004e92); color: #0cf; font-size: 20px; display: flex; align-items: center; justify-content: center; animation: cyberPulse 1.5s infinite; }
-    @keyframes cyberPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-    
-    .avatar-crystal { background: linear-gradient(135deg, #00ff88, #0cf); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); animation: crystalSpin 6s infinite linear; }
-    @keyframes crystalSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    
-    .avatar-bubble { background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.3), transparent 70%); border: 1px solid rgba(255,255,255,0.5); animation: bubbleFloat 4s infinite; }
-    @keyframes bubbleFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-    
-    .avatar-galaxy { background: radial-gradient(circle at 20% 20%, #ff6b6b, #8a2be2, #0cf); animation: galaxySpin 10s infinite linear; }
-    @keyframes galaxySpin { 0% { transform: rotate(0deg) scale(1); } 50% { transform: rotate(180deg) scale(1.1); } 100% { transform: rotate(360deg) scale(1); } }
-    
-    .avatar-lightning { background: #000; color: #ff0; font-size: 24px; display: flex; align-items: center; justify-content: center; animation: lightning 2s infinite; }
-    @keyframes lightning { 0%,95%,98% { opacity: 0.3; } 96%,99% { opacity: 1; } }
-
-    .close-profile-btn {
-      background: rgba(255,255,255,0.1);
-      color: var(--text);
-      border: 1px solid rgba(100,100,255,0.3);
-      padding: 10px;
-      border-radius: 20px;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 10px;
-    }
-
-    .close-profile-btn:hover {
-      background: rgba(255,255,255,0.2);
-    }
-
-    /* Comedy Modal */
-    .comedy-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(5, 5, 10, 0.95);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-    }
-
-    .comedy-card {
-      background: var(--card-bg);
-      padding: 25px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 450px;
-      text-align: center;
-      border: 1px solid rgba(0, 204, 255, 0.2);
-    }
-
-    .joke-display {
-      font-size: 16px;
-      margin: 15px 0;
-      min-height: 70px;
-      background: rgba(30, 30, 50, 0.5);
-      padding: 15px;
-      border-radius: 12px;
-    }
-
-    .comedy-controls {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin: 15px 0;
-      flex-wrap: wrap;
-    }
-
-    .comedy-controls button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .new-joke-btn { background: linear-gradient(135deg, var(--accent), #00a8cc); color: white; }
-    .share-joke-btn { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; }
-    .close-comedy-btn { background: rgba(255,255,255,0.1); color: var(--text); }
-
-    .add-joke-section {
-      margin-top: 15px;
-      padding-top: 15px;
-      border-top: 1px solid rgba(100, 100, 255, 0.2);
-    }
-
-    .add-joke-input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      background: rgba(30, 30, 50, 0.7);
-      color: var(--text);
-      border: 1px solid rgba(100, 100, 255, 0.3);
-      margin: 8px 0;
-    }
-
-    .submit-joke-btn {
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 18px;
-      cursor: pointer;
-    }
-
-    .confirmation-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0, 255, 136, 0.9);
-      color: #0a0a12;
-      padding: 15px 30px;
-      border-radius: 12px;
-      font-weight: bold;
-      z-index: 4000;
-      animation: confirmPulse 0.5s ease-in-out;
-    }
-
-    @keyframes confirmPulse {
-      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
-      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-    }
-
-    .connection-status {
-      position: fixed;
-      bottom: 100px;
-      right: 20px;
-      font-size: 12px;
-      background: rgba(0,0,0,0.3);
-      padding: 5px 10px;
-      border-radius: 20px;
-    }
-
-    .floating-shapes {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: -1;
-      overflow: hidden;
-    }
-
-    .shape {
-      position: absolute;
-      opacity: 0.1;
-      animation: float 20s infinite linear;
-    }
-
-    .shape:nth-child(1) { width: 80px; height: 80px; background: var(--primary); top: 10%; left: 5%; border-radius: 50%; }
-    .shape:nth-child(2) { width: 120px; height: 120px; background: var(--secondary); top: 70%; left: 80%; clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
-    .shape:nth-child(3) { width: 100px; height: 100px; background: var(--accent); top: 20%; left: 85%; transform: rotate(45deg); }
-    .shape:nth-child(4) { width: 150px; height: 150px; background: var(--primary); top: 80%; left: 10%; border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
-
-    @keyframes float {
-      0% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(30px, -50px) rotate(120deg); }
-      66% { transform: translate(-20px, 20px) rotate(240deg); }
-      100% { transform: translate(0, 0) rotate(360deg); }
-    }
-
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: rgba(30, 30, 50, 0.5); border-radius: 10px; }
-    ::-webkit-scrollbar-thumb { background: linear-gradient(var(--primary), var(--secondary)); border-radius: 10px; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Chat Hook</title>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<style>
+:root{
+  --primary:#0cf;--secondary:#8a2be2;--accent:#00ff88;
+  --dark-bg:#07070f;--card-bg:rgba(15,15,28,0.85);
+  --text:#e0e0ff;--text-muted:#8888aa;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--dark-bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;overflow-x:hidden;}
+ 
+/* ===================== BG LAYERS ===================== */
+.bg-layer{position:fixed;inset:0;z-index:-1;display:none;overflow:hidden;}
+.bg-layer.active{display:block;}
+#bg-default{display:block;}
+ 
+/* Default floating orbs */
+.orb{position:absolute;border-radius:50%;filter:blur(60px);opacity:.15;animation:orbFloat 20s infinite ease-in-out;}
+.orb:nth-child(1){width:400px;height:400px;background:var(--primary);top:-10%;left:-5%;animation-delay:0s;}
+.orb:nth-child(2){width:350px;height:350px;background:var(--secondary);top:50%;right:-5%;animation-delay:-7s;}
+.orb:nth-child(3){width:300px;height:300px;background:var(--accent);bottom:-5%;left:30%;animation-delay:-14s;}
+@keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1);}33%{transform:translate(40px,-60px) scale(1.1);}66%{transform:translate(-30px,30px) scale(0.9);}}</style>
+<!-- We'll inject the rest via JS to avoid file size issues -->
+<style id="dynamic-styles">
+/* ===================== PROFILE AVATAR EFFECTS ===================== */
+.user-avatar{
+  width:45px!important;height:45px!important;border-radius:50%!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  font-weight:bold!important;font-size:20px!important;color:white!important;
+  overflow:hidden!important;cursor:pointer;transition:transform .3s;position:relative;
+}
+.user-avatar:hover{transform:scale(1.08);}
+.user-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;}
+ 
+/* Profile pic effect wrapper */
+.pic-effect-wrap{
+  position:relative;width:45px;height:45px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;cursor:pointer;
+}
+.pic-effect-wrap .user-avatar{position:absolute;inset:0;margin:0!important;}
+ 
+/* Effect: Neon Glow */
+.pfx-neon-glow .user-avatar{box-shadow:0 0 0 3px #0cf,0 0 20px #0cf,0 0 40px rgba(0,204,255,.4)!important;animation:neonPfx 2s infinite alternate;}
+@keyframes neonPfx{0%{box-shadow:0 0 0 3px #0cf,0 0 15px #0cf,0 0 30px rgba(0,204,255,.3)!important;}100%{box-shadow:0 0 0 3px #0cf,0 0 30px #0cf,0 0 60px rgba(0,204,255,.6)!important;}}
+ 
+/* Effect: Rainbow Ring */
+.pfx-rainbow::before{content:'';position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(#ff0080,#ff8c00,#00ff88,#0cf,#8a2be2,#ff0080);animation:rainbowSpin 2s linear infinite;z-index:1;}
+.pfx-rainbow .user-avatar{z-index:2;position:relative;}
+ 
+/* Effect: Fire Ring */
+.pfx-fire::before{content:'';position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(#ff4500,#ff8c00,#ffd700,#ff4500);animation:fireSpin 1s linear infinite;z-index:1;filter:blur(2px);}
+.pfx-fire::after{content:'';position:absolute;inset:-2px;border-radius:50%;background:conic-gradient(#ff6b35,#ffd700,#ff6b35);animation:fireSpin 0.8s linear infinite reverse;z-index:1;}
+.pfx-fire .user-avatar{z-index:2;position:relative;}
+@keyframes fireSpin{to{transform:rotate(360deg);}}
+@keyframes rainbowSpin{to{transform:rotate(360deg);}}
+ 
+/* Effect: Galaxy Orbit */
+.pfx-galaxy{overflow:visible!important;}
+.pfx-galaxy::before{content:'';position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(transparent 80%,rgba(138,43,226,.8) 85%,transparent 90%,transparent 170%,rgba(0,204,255,.8) 175%,transparent 180%);animation:galaxyOrbit 3s linear infinite;z-index:1;}
+.pfx-galaxy .user-avatar{z-index:2;border:2px solid rgba(138,43,226,.5)!important;}
+@keyframes galaxyOrbit{to{transform:rotate(360deg);}}
+ 
+/* Effect: Electric */
+.pfx-electric .user-avatar{
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #0cf,0 0 15px #0cf!important;
+  animation:electricPfx 0.15s infinite;
+}
+@keyframes electricPfx{
+  0%,100%{box-shadow:0 0 0 2px #fff,0 0 0 4px #0cf,0 0 15px #0cf!important;}
+  50%{box-shadow:0 0 0 2px #ff0,0 0 0 4px #f0f,0 0 25px #f0f!important;}
+}
+ 
+/* Effect: Hologram */
+.pfx-hologram .user-avatar{animation:holoPfx 3s infinite;}
+@keyframes holoPfx{
+  0%,100%{filter:hue-rotate(0deg) brightness(1);box-shadow:0 0 0 2px #00ff88,0 0 20px rgba(0,255,136,.4)!important;}
+  33%{filter:hue-rotate(120deg) brightness(1.2);box-shadow:0 0 0 2px #0cf,0 0 20px rgba(0,204,255,.4)!important;}
+  66%{filter:hue-rotate(240deg) brightness(1.1);box-shadow:0 0 0 2px #8a2be2,0 0 20px rgba(138,43,226,.4)!important;}
+}
+ 
+/* Effect: Aurora Ring */
+.pfx-aurora::before{content:'';position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(#00ff88,#0cf,#8a2be2,#ff0080,#00ff88);animation:auroraSpin 4s linear infinite;z-index:1;filter:blur(3px);opacity:.8;}
+.pfx-aurora .user-avatar{z-index:2;position:relative;}
+@keyframes auroraSpin{to{transform:rotate(360deg);}}
+ 
+/* Effect: Pulse Wave */
+.pfx-pulse::after{content:'';position:absolute;inset:0;border-radius:50%;border:3px solid var(--accent);animation:pulseWave 1.5s infinite;z-index:1;}
+@keyframes pulseWave{0%{transform:scale(1);opacity:.8;}100%{transform:scale(2);opacity:0;}}
+ 
+/* Effect: Diamond */
+.pfx-diamond::before{content:'';position:absolute;inset:-5px;background:linear-gradient(45deg,#a8edea,#fed6e3,#a8edea,#d299c2);border-radius:50%;animation:diamondShift 3s linear infinite;z-index:1;}
+.pfx-diamond .user-avatar{z-index:2;position:relative;}
+@keyframes diamondShift{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+ 
+/* No effect */
+.pfx-none .user-avatar{border:2px solid var(--accent)!important;box-shadow:0 0 10px rgba(0,255,136,.3)!important;}
+ 
+/* Small message avatars */
+.msg-avatar-wrap{position:relative;width:32px;height:32px;border-radius:50%;flex-shrink:0;}
+.msg-avatar-wrap .user-avatar{width:32px!important;height:32px!important;font-size:14px!important;cursor:default;}
+.msg-avatar-wrap.pfx-neon-glow .user-avatar{box-shadow:0 0 0 2px #0cf,0 0 10px #0cf!important;animation:neonPfx 2s infinite alternate;}
+.msg-avatar-wrap.pfx-rainbow::before,.msg-avatar-wrap.pfx-fire::before,.msg-avatar-wrap.pfx-fire::after,
+.msg-avatar-wrap.pfx-galaxy::before,.msg-avatar-wrap.pfx-aurora::before,.msg-avatar-wrap.pfx-diamond::before{inset:-2px;}
+.msg-avatar-wrap.pfx-pulse::after{border-width:2px;}
+ 
+/* ===================== LAYOUT ===================== */
+.message-container{position:fixed;top:90px;bottom:75px;left:0;right:0;max-width:1100px;margin:0 auto;padding:16px 20px;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;}
+.message{margin-bottom:14px;animation:msgIn .3s ease-out;display:flex;align-items:flex-start;gap:10px;}
+.message.own{flex-direction:row-reverse;}
+.message-bubble{max-width:68%;padding:11px 16px;border-radius:18px;backdrop-filter:blur(10px);}
+.message.other .message-bubble{background:rgba(25,25,45,.75);border:1px solid rgba(100,100,255,.2);border-bottom-left-radius:4px;}
+.message.own .message-bubble{background:linear-gradient(135deg,var(--primary),var(--secondary));border-bottom-right-radius:4px;box-shadow:0 4px 14px rgba(0,204,255,.25);}
+.message-user{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
+.user-name{font-weight:bold;font-size:13px;}
+.message.own .user-name{color:var(--accent);}
+.message-content{font-size:14px;line-height:1.5;word-wrap:break-word;}
+.message-meta{font-size:10px;opacity:.65;margin-top:6px;display:flex;justify-content:space-between;gap:8px;}
+@keyframes msgIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:translateY(0);}}
+ 
+#send-container{display:flex;justify-content:center;align-items:center;gap:12px;position:fixed;bottom:0;left:0;width:100%;background:rgba(7,7,15,.96);backdrop-filter:blur(15px);padding:12px 18px;border-top:1px solid rgba(0,204,255,.15);z-index:100;}
+#messageInp{flex:1;max-width:760px;height:44px;border-radius:22px;padding:0 18px;background:rgba(25,25,45,.9);color:var(--text);font-size:14px;outline:none;border:1px solid rgba(100,100,255,.2);transition:all .3s;}
+#messageInp:focus{border-color:var(--primary);box-shadow:0 0 12px rgba(0,204,255,.25);}
+.btn{cursor:pointer;border:none;height:44px;padding:0 22px;border-radius:22px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:600;font-size:14px;transition:all .3s;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,204,255,.35);}
+ 
+/* ===================== HEADER ===================== */
+.top-bar{position:fixed;top:0;left:0;right:0;height:65px;background:rgba(7,7,15,.9);backdrop-filter:blur(15px);border-bottom:1px solid rgba(0,204,255,.1);z-index:200;display:flex;align-items:center;padding:0 16px;gap:10px;}
+.logo{font-size:22px;font-weight:800;color:#0cf;text-shadow:0 0 12px #0cf,0 0 25px #8a2be2;flex:1;text-align:center;pointer-events:none;}
+.logo span{font-size:9px;display:block;color:var(--accent);letter-spacing:2px;text-shadow:0 0 8px var(--accent);}
+.header-btn{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:none;padding:7px 14px;border-radius:18px;cursor:pointer;font-weight:700;font-size:12px;white-space:nowrap;transition:all .3s;}
+.header-btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,204,255,.3);}
+.header-btn.comedy{background:linear-gradient(135deg,var(--accent),#00a8cc);}
+#userAvatarWrap{flex-shrink:0;}
+ 
+/* ===================== MODALS ===================== */
+.modal-overlay{position:fixed;inset:0;background:rgba(3,3,12,.97);display:none;justify-content:center;align-items:center;z-index:500;backdrop-filter:blur(12px);}
+.modal-overlay.open{display:flex;}
+.modal-card{background:var(--card-bg);padding:24px;border-radius:20px;width:93%;max-width:520px;max-height:88vh;overflow-y:auto;border:1px solid rgba(0,204,255,.15);position:relative;}
+.modal-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--secondary));border-radius:20px 20px 0 0;}
+.modal-title{text-align:center;font-size:20px;font-weight:700;margin-bottom:18px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;}
+ 
+/* Profile */
+.profile-header{display:flex;align-items:center;gap:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:14px;}
+.profile-avatar-big{position:relative;cursor:pointer;}
+.profile-avatar-big .pic-effect-wrap{width:70px!important;height:70px!important;}
+.profile-avatar-big .pic-effect-wrap .user-avatar{width:70px!important;height:70px!important;font-size:28px!important;}
+.camera-badge{position:absolute;bottom:0;right:0;width:22px;height:22px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;z-index:10;border:2px solid var(--dark-bg);}
+.profile-info h3{font-size:18px;margin:0;}
+.profile-info p{font-size:12px;color:var(--text-muted);margin:3px 0 0;}
+.social-display{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
+.social-display a{color:var(--primary);font-size:12px;text-decoration:none;}
+.social-display a:hover{color:var(--accent);}
+.section{background:rgba(0,0,0,.25);border-radius:12px;padding:14px;margin:10px 0;}
+.section-title{color:var(--accent);font-size:13px;font-weight:700;margin-bottom:10px;}
+.inp{width:100%;padding:9px 12px;border:1px solid rgba(100,100,255,.25);border-radius:8px;background:rgba(20,20,40,.8);color:var(--text);font-size:13px;margin-bottom:8px;}
+.inp:focus{outline:none;border-color:var(--primary);}
+textarea.inp{resize:vertical;min-height:70px;line-height:1.5;}
+.row{display:flex;gap:8px;align-items:center;}
+.row .inp{margin-bottom:0;flex:1;}
+.soc-icon{font-size:18px;flex-shrink:0;}
+.btn-sm{cursor:pointer;border:none;padding:9px 16px;border-radius:18px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;font-weight:600;font-size:13px;transition:all .3s;white-space:nowrap;}
+.btn-sm:hover{transform:translateY(-1px);}
+.btn-wide{width:100%;padding:10px;height:auto;font-size:13px;}
+.btn-ghost{background:rgba(255,255,255,.08);border:1px solid rgba(100,100,255,.25);color:var(--text);cursor:pointer;padding:9px;border-radius:18px;width:100%;margin-top:8px;font-size:13px;}
+.btn-ghost:hover{background:rgba(255,255,255,.15);}
+.btn-danger{background:rgba(255,50,50,.15);border:1px solid rgba(255,50,50,.3);color:#ff6b6b;cursor:pointer;padding:9px;border-radius:18px;width:100%;margin-top:6px;font-size:13px;}
+.btn-danger:hover{background:rgba(255,50,50,.3);}
+#photo-upload{display:none;}
+.bio-display{font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.6;margin-top:4px;}
+ 
+/* Profile Pic Effects Grid */
+.pfx-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:8px 0;}
+.pfx-item{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;}
+.pfx-preview{width:44px;height:44px;position:relative;}
+.pfx-label{font-size:9px;color:var(--text-muted);text-align:center;line-height:1.2;}
+.pfx-item.selected .pfx-label{color:var(--accent);}
+.pfx-item.selected .pfx-preview::after{content:'✓';position:absolute;bottom:-4px;right:-4px;background:var(--accent);color:#000;border-radius:50%;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:bold;z-index:20;}
+ 
+/* Avatar style grid */
+.av-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.av-item{aspect-ratio:1;border-radius:10px;border:2px solid rgba(100,100,255,.25);cursor:pointer;transition:all .3s;}
+.av-item:hover{border-color:var(--primary);transform:scale(1.04);}
+.av-item.selected{border-color:var(--accent);box-shadow:0 0 15px var(--accent);}
+.av-label{font-size:9px;color:var(--text-muted);text-align:center;margin-top:3px;}
+ 
+/* Avatar CSS animations */
+.av-gradient{background:linear-gradient(135deg,#ff0080,#8000ff);animation:avGrad 3s infinite alternate;}
+@keyframes avGrad{0%{background:linear-gradient(135deg,#ff0080,#8000ff);}100%{background:linear-gradient(135deg,#8000ff,#00ff88);}}
+.av-neon{background:#000;box-shadow:inset 0 0 20px #0cf;animation:avNeon 1.5s infinite alternate;}
+@keyframes avNeon{0%{box-shadow:inset 0 0 10px #0cf,0 0 10px #0cf;}100%{box-shadow:inset 0 0 30px #0cf,0 0 25px #0cf;}}
+.av-spin{background:conic-gradient(#ff6b6b,#feca57,#48dbfb,#ff9ff3,#ff6b6b);animation:avSpin 2s linear infinite;}
+@keyframes avSpin{to{transform:rotate(360deg);}}
+.av-wave{background:linear-gradient(45deg,#0cf,#8a2be2,#00ff88);background-size:300% 300%;animation:avWave 3s infinite;}
+@keyframes avWave{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+.av-plasma{background:linear-gradient(45deg,#f093fb,#f5576c,#4facfe,#00f2fe);background-size:400% 400%;animation:avWave 2s infinite;}
+.av-cyber{background:#000428;border:1px solid #0cf;animation:avCyber 1.5s infinite;}
+@keyframes avCyber{0%,100%{box-shadow:inset 0 0 10px #0cf;filter:brightness(1);}50%{box-shadow:inset 0 0 25px #0cf;filter:brightness(1.3);}}
+.av-aurora{background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);position:relative;overflow:hidden;}
+.av-aurora::before{content:'';position:absolute;width:200%;height:200%;top:-50%;left:-50%;background:linear-gradient(45deg,transparent 30%,rgba(0,255,136,.4) 50%,rgba(138,43,226,.3) 65%,transparent 70%);animation:avAurora 4s linear infinite;}
+@keyframes avAurora{to{transform:translate(50%,50%);}}
+.av-lava{background:radial-gradient(circle,#ff6b35,#f7c59f,#ff6b35);animation:avLava 3s infinite alternate;}
+@keyframes avLava{0%{background:radial-gradient(circle at 30% 30%,#ff4500,#ff8c00);}100%{background:radial-gradient(circle at 70% 70%,#ffd700,#ff4500);}}
+.av-ice{background:linear-gradient(135deg,#a8edea,#fed6e3,#c1c8e4);animation:avIce 3s infinite alternate;}
+@keyframes avIce{0%{filter:hue-rotate(0deg) brightness(1);}100%{filter:hue-rotate(30deg) brightness(1.2);}}
+.av-galaxy{background:radial-gradient(ellipse at center,#16213e,#0f3460,#533483);animation:avGalaxy 8s linear infinite;}
+@keyframes avGalaxy{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+.av-quantum{background:conic-gradient(from 0deg,#0cf,#8a2be2,#00ff88,#ff0080,#0cf);animation:avSpin 4s linear infinite;}
+.av-glitch{background:#000;animation:avGlitch 2s infinite;}
+@keyframes avGlitch{0%,100%{filter:none;}20%{filter:hue-rotate(90deg) saturate(3);}40%{filter:hue-rotate(180deg) brightness(1.5);}60%{filter:hue-rotate(270deg) saturate(2);}}
+.av-crystal{background:linear-gradient(135deg,#e0eafc,#cfdef3,#a8edea);animation:avCrystal 4s infinite alternate;}
+@keyframes avCrystal{0%{background:linear-gradient(135deg,#e0eafc,#cfdef3);filter:brightness(1);}100%{background:linear-gradient(135deg,#a8edea,#ffecd2);filter:brightness(1.3);}}
+.av-thunder{background:#1a1a2e;animation:avThunder 2s infinite;}
+@keyframes avThunder{0%,90%,100%{box-shadow:none;filter:brightness(1);}93%{box-shadow:inset 0 0 20px #fff,0 0 30px #0cf;filter:brightness(2);}96%{box-shadow:none;filter:brightness(1);}98%{box-shadow:inset 0 0 15px #f0f,0 0 20px #f0f;filter:brightness(1.8);}}
+.av-sunset{background:linear-gradient(180deg,#ff6b6b,#feca57,#ff9ff3);animation:avSunset 3s infinite alternate;}
+@keyframes avSunset{0%{background:linear-gradient(180deg,#ff6b6b,#feca57);}100%{background:linear-gradient(180deg,#f093fb,#f5576c,#feca57);}}
+ 
+/* ===================== ANIMATION SELECTOR MODAL ===================== */
+.anim-modal-card{max-width:680px;}
+.cat-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.cat-tab{padding:6px 14px;border-radius:14px;border:1px solid rgba(100,100,255,.3);background:transparent;color:var(--text-muted);cursor:pointer;font-size:12px;transition:all .3s;}
+.cat-tab.active{background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border-color:transparent;}
+.anim-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.anim-item{border-radius:12px;border:2px solid rgba(100,100,255,.2);cursor:pointer;overflow:hidden;transition:all .3s;position:relative;}
+.anim-item:hover{border-color:var(--primary);transform:scale(1.03);}
+.anim-item.active{border-color:var(--accent);box-shadow:0 0 14px var(--accent);}
+.anim-thumb{height:60px;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(20,20,40,.6);}
+.anim-name{font-size:10px;color:var(--text-muted);text-align:center;padding:5px 4px;line-height:1.2;}
+.cat-section{display:none;}.cat-section.visible{display:block;}
+.cat-label{font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;}
+ 
+/* ===================== JOIN MODAL ===================== */
+.join-modal{position:fixed;inset:0;background:rgba(3,3,12,.97);display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(10px);}
+.join-card{background:var(--card-bg);padding:28px;border-radius:20px;width:90%;max-width:380px;border:1px solid rgba(0,204,255,.2);position:relative;}
+.join-card::before{content:'';position:absolute;top:0;left:0;width:100%;height:4px;background:linear-gradient(90deg,var(--primary),var(--accent),var(--secondary));border-radius:20px 20px 0 0;}
+.join-card h2{text-align:center;font-size:26px;margin-bottom:18px;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;}
+.join-card input,.join-card select{width:100%;padding:11px;margin:8px 0;border:1px solid rgba(100,100,255,.3);border-radius:8px;background:rgba(25,25,45,.8);color:var(--text);font-size:14px;}
+.join-card input:focus,.join-card select:focus{outline:none;border-color:var(--primary);}
+.join-card button{width:100%;padding:11px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:none;border-radius:8px;margin-top:14px;font-size:15px;font-weight:700;cursor:pointer;transition:all .3s;}
+.join-card button:hover{transform:translateY(-2px);}
+ 
+/* ===================== COMEDY ===================== */
+.joke-display{font-size:15px;margin:14px 0;min-height:65px;background:rgba(25,25,45,.6);padding:14px;border-radius:10px;line-height:1.6;}
+.comedy-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.add-joke-section{margin-top:14px;padding-top:14px;border-top:1px solid rgba(100,100,255,.2);}
+ 
+/* ===================== MISC ===================== */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,255,136,.9);color:#07070f;padding:12px 26px;border-radius:10px;font-weight:700;z-index:4000;animation:toastIn .4s ease;pointer-events:none;}
+@keyframes toastIn{0%{opacity:0;transform:translate(-50%,-55%) scale(.9);}100%{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+.conn-status{position:fixed;bottom:85px;right:14px;font-size:11px;background:rgba(0,0,0,.4);padding:4px 10px;border-radius:12px;z-index:50;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:rgba(20,20,40,.4);}::-webkit-scrollbar-thumb{background:linear-gradient(var(--primary),var(--secondary));border-radius:5px;}
+select option{background:#0f0f1e;color:var(--text);}
+</style>
 </head>
 <body>
-  <!-- Floating shapes background -->
-  <div class="floating-shapes" id="default-animation">
-    <div class="shape"></div>
-    <div class="shape"></div>
-    <div class="shape"></div>
-    <div class="shape"></div>
-  </div>
-
-  <!-- Animation Selector Button -->
-  <div class="animation-selector-container">
-    <button class="animation-btn" onclick="openAnimationSelector()">✨ Change Animation</button>
-  </div>
-
-  <!-- Comedy Club Button -->
-  <div class="comedy-club-container">
-    <button class="comedy-btn" onclick="openComedyClub()">😂 Comedy Club</button>
-  </div>
-
-  <!-- User Avatar - CLICKABLE for Profile -->
-  <div class="user-avatar" id="userAvatar" onclick="openProfileModal()"></div>
-
-  <!-- Logo -->
-  <div class="logo-container">
-    <div class="big-logo">
-      CHAT<br>HOOK
-      <div>Where Every Chat Matters</div>
+ 
+<!-- BG LAYERS -->
+<div class="bg-layer active" id="bg-default">
+  <div class="orb"></div><div class="orb"></div><div class="orb"></div>
+</div>
+<div class="bg-layer" id="bg-matrix"><canvas id="matrix-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-warp"><canvas id="warp-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-galaxy"><canvas id="galaxy-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-aurora"><div style="width:100%;height:100%;background:linear-gradient(135deg,#0a0a12,#0d1b2a,#0a0a12);position:relative;overflow:hidden;" id="aurora-inner"></div></div>
+<div class="bg-layer" id="bg-fire"><canvas id="fire-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-lava"><canvas id="lava-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-electric"><canvas id="electric-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-quantum"><canvas id="quantum-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-ocean"><canvas id="ocean-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-cyber"><canvas id="cyber-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-nebula"><canvas id="nebula-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-synthwave"><div id="synthwave-inner" style="width:100%;height:100%;overflow:hidden;position:relative;"></div></div>
+<div class="bg-layer" id="bg-plasma"><canvas id="plasma-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-crystal3d"><canvas id="crystal3d-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-dna"><canvas id="dna-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-vortex"><canvas id="vortex-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-sakura"><canvas id="sakura-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-hologram"><canvas id="hologram-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-thunder3d"><canvas id="thunder3d-canvas" style="width:100%;height:100%;"></canvas></div>
+<div class="bg-layer" id="bg-sunrise"><canvas id="sunrise-canvas" style="width:100%;height:100%;"></canvas></div>
+ 
+<!-- HEADER -->
+<div class="top-bar">
+  <button class="header-btn" onclick="openAnimSel()">✨ BG</button>
+  <button class="header-btn comedy" onclick="openComedy()">😂 Comedy</button>
+  <div class="logo">CHAT HOOK<span>Where Every Chat Matters</span></div>
+  <!-- User Avatar -->
+  <div id="userAvatarWrap">
+    <div class="pic-effect-wrap pfx-none" id="topAvatarWrap" onclick="openProfile()" style="width:44px;height:44px;">
+      <div class="user-avatar" id="userAvatar" style="background:linear-gradient(135deg,#ff0080,#8000ff);">?</div>
     </div>
   </div>
-
-  <!-- Message container -->
-  <div class="message-container" id="message-container"></div>
-
-  <!-- Connection status -->
-  <div class="connection-status">
-    <span>🟢 Connected</span>
+</div>
+ 
+<!-- MESSAGES -->
+<div class="message-container" id="message-container"></div>
+<div class="conn-status">🟢 Connected</div>
+ 
+<!-- SEND -->
+<form id="send-container">
+  <input type="text" id="messageInp" placeholder="Type your message..." autocomplete="off"/>
+  <button class="btn" type="submit">Send</button>
+</form>
+ 
+<!-- JOIN MODAL -->
+<div class="join-modal" id="join-modal">
+  <div class="join-card">
+    <h2>Join Chat Hook</h2>
+    <form id="join-form">
+      <input id="join-name" type="text" placeholder="Your name" required autocomplete="off"/>
+      <select id="join-gender" required>
+        <option value="">Select gender</option>
+        <option>Male</option><option>Female</option><option>Other</option>
+      </select>
+      <select id="join-region" required>
+        <option value="">Select Country</option>
+        <option>Afghanistan</option><option>India</option><option>USA</option>
+        <option>United Kingdom</option><option>Canada</option><option>Australia</option>
+        <option>Germany</option><option>France</option><option>Japan</option><option>China</option>
+        <option>Brazil</option><option>Russia</option><option>South Africa</option>
+        <option>Egypt</option><option>Pakistan</option><option>Bangladesh</option>
+        <option>Nepal</option><option>Sri Lanka</option><option>UAE</option><option>Saudi Arabia</option>
+      </select>
+      <button type="submit">Join Chat</button>
+    </form>
   </div>
-
-  <!-- Message input form -->
-  <form id="send-container">
-    <input type="text" name="messageInp" id="messageInp" placeholder="Type your message..." autocomplete="off" />
-    <button class="btn" type="submit">Send</button>
-  </form>
-
-  <!-- Comedy Club Modal -->
-  <div id="comedy-modal" class="comedy-modal">
-    <div class="comedy-card">
-      <h2>🎭 Comedy Club</h2>
-      <div class="joke-display" id="joke-display">Click "New Joke" to start laughing!</div>
-      <div class="comedy-controls">
-        <button class="new-joke-btn" onclick="getNewJoke()">🎪 New Joke</button>
-        <button class="share-joke-btn" onclick="shareJokeToChat()">📢 Share in Chat</button>
-        <button class="close-comedy-btn" onclick="closeComedyClub()">✕ Close</button>
-      </div>
-      <div class="add-joke-section">
-        <h4>Add Your Own Joke</h4>
-        <input type="text" class="add-joke-input" id="new-joke-input" placeholder="Write a funny joke...">
-        <button class="submit-joke-btn" onclick="addNewJoke()">Submit Joke</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Profile Modal -->
-  <div id="profile-modal" class="profile-modal">
-    <div class="profile-card">
-      <div class="profile-header">
-        <div class="profile-avatar" id="profile-avatar-display">U</div>
-        <div class="profile-info">
-          <h3 id="profile-name">User</h3>
-          <p id="profile-region">Region</p>
+</div>
+ 
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profile-modal">
+  <div class="modal-card">
+    <div class="modal-title">My Profile</div>
+    <div class="profile-header">
+      <div class="profile-avatar-big" onclick="triggerPhotoUpload()">
+        <div class="pic-effect-wrap pfx-none" id="profileAvatarWrap" style="width:70px;height:70px;">
+          <div class="user-avatar" id="profileAvatar" style="width:70px!important;height:70px!important;font-size:28px!important;">?</div>
         </div>
+        <div class="camera-badge">📷</div>
+        <input type="file" id="photo-upload" accept="image/*" onchange="handlePhoto(event)">
       </div>
-
-      <div class="profile-section">
-        <h4>✏️ Change Name</h4>
-        <div class="name-change-area">
-          <input type="text" id="new-name-input" placeholder="Enter new name" maxlength="20">
-          <button class="btn" onclick="changeName()" style="padding: 10px 15px;">Change</button>
-        </div>
+      <div class="profile-info">
+        <h3 id="pname">User</h3>
+        <p id="pregion">Region</p>
+        <div class="social-display" id="socialDisplay"></div>
+        <div class="bio-display" id="bioDisplay"></div>
       </div>
-
-      <div class="profile-section">
-        <h4>🖼️ Change Profile Picture (16 Animations)</h4>
-        <div class="avatar-grid" id="avatar-grid"></div>
+    </div>
+ 
+    <!-- Edit Name & Bio -->
+    <div class="section">
+      <div class="section-title">✏️ Edit Profile</div>
+      <div class="row" style="margin-bottom:8px;">
+        <input type="text" class="inp" id="nameInp" placeholder="Change name" maxlength="20" style="margin-bottom:0;">
+        <button class="btn-sm" onclick="changeName()">Save</button>
       </div>
-
-      <button class="close-profile-btn" onclick="closeProfileModal()">Close</button>
+      <textarea class="inp" id="bioInp" placeholder="Bio likhein (jitni chahein utni lines)..."></textarea>
+      <button class="btn-sm btn-wide" onclick="saveBio()">Save Bio</button>
+    </div>
+ 
+    <!-- Social Links -->
+    <div class="section">
+      <div class="section-title">🔗 Social Links</div>
+      <div class="row" style="margin-bottom:8px;">
+        <span class="soc-icon">▶️</span>
+        <input type="url" class="inp" id="ytInp" placeholder="YouTube channel link" style="margin-bottom:0;">
+      </div>
+      <div class="row" style="margin-bottom:8px;">
+        <span class="soc-icon">📸</span>
+        <input type="url" class="inp" id="igInp" placeholder="Instagram profile link" style="margin-bottom:0;">
+      </div>
+      <button class="btn-sm btn-wide" onclick="saveSocials()">Save Links</button>
+    </div>
+ 
+    <!-- Profile Pic Effect -->
+    <div class="section">
+      <div class="section-title">✨ Profile Pic Animation</div>
+      <div class="pfx-grid" id="pfxGrid"></div>
+    </div>
+ 
+    <!-- Photo Upload -->
+    <div class="section">
+      <div class="section-title">📷 Profile Photo</div>
+      <button class="btn-sm btn-wide" onclick="triggerPhotoUpload()" style="background:linear-gradient(135deg,var(--accent),#00a8cc);">Upload Photo</button>
+      <p style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:6px;">Ya upar avatar pe tap karo</p>
+    </div>
+ 
+    <!-- Avatar Style -->
+    <div class="section">
+      <div class="section-title">🖼️ Avatar Style (photo nahi hai to)</div>
+      <div class="av-grid" id="avGrid"></div>
+    </div>
+ 
+    <button class="btn-ghost" onclick="closeProfile()">Close</button>
+    <button class="btn-danger" onclick="logoutUser()">🚪 Logout</button>
+  </div>
+</div>
+ 
+<!-- ANIMATION SELECTOR MODAL -->
+<div class="modal-overlay" id="anim-modal">
+  <div class="modal-card anim-modal-card">
+    <div class="modal-title">✨ Background Animations</div>
+    <div class="cat-tabs">
+      <button class="cat-tab active" onclick="switchCat('all',this)">All</button>
+      <button class="cat-tab" onclick="switchCat('space',this)">🌌 Space</button>
+      <button class="cat-tab" onclick="switchCat('fire',this)">🔥 Fire & Energy</button>
+      <button class="cat-tab" onclick="switchCat('cyber',this)">💻 Cyber</button>
+      <button class="cat-tab" onclick="switchCat('nature',this)">🌸 Nature</button>
+      <button class="cat-tab" onclick="switchCat('special',this)">⭐ Special</button>
+    </div>
+    <div id="animGrid" class="anim-grid"></div>
+    <button class="btn-ghost" onclick="closeAnimSel()" style="margin-top:12px;">Close</button>
+  </div>
+</div>
+ 
+<!-- COMEDY MODAL -->
+<div class="modal-overlay" id="comedy-modal">
+  <div class="modal-card" style="max-width:430px;">
+    <div class="modal-title">🎭 Comedy Club</div>
+    <div class="joke-display" id="jokeDisplay">Click "New Joke" to get started!</div>
+    <div class="comedy-controls">
+      <button class="btn-sm" onclick="newJoke()" style="background:linear-gradient(135deg,var(--accent),#00a8cc);">🎪 New Joke</button>
+      <button class="btn-sm" onclick="shareJoke()">📢 Share</button>
+      <button class="btn-sm" onclick="closeComedy()" style="background:rgba(255,255,255,.1);color:var(--text);">✕</button>
+    </div>
+    <div class="add-joke-section">
+      <div class="section-title" style="font-size:13px;margin-bottom:8px;">Add Your Joke</div>
+      <input type="text" class="inp" id="newJokeInp" placeholder="Apna funny joke likhein...">
+      <button class="btn-sm" onclick="addJoke()">Submit</button>
     </div>
   </div>
-
-  <!-- Join Modal -->
-  <div id="join-modal" class="join-modal">
-    <div class="join-card">
-      <h2>Join Chat Hook</h2>
-      <form id="join-form">
-        <input id="join-name" type="text" placeholder="Your name" required autocomplete="off" />
-        <select id="join-gender" required>
-          <option value="">Select gender</option>
-          <option value="Male">Male</option>
-          <option value="Female">Female</option>
-          <option value="Other">Other</option>
-        </select>
-        <select id="join-region" required>
-          <option value="">Select Country / Region</option>
-          <option value="Afghanistan">Afghanistan</option><option value="India">India</option><option value="USA">USA</option>
-          <option value="United Kingdom">United Kingdom</option><option value="Canada">Canada</option><option value="Australia">Australia</option>
-          <option value="Germany">Germany</option><option value="France">France</option><option value="Japan">Japan</option>
-          <option value="China">China</option><option value="Brazil">Brazil</option><option value="Russia">Russia</option>
-          <option value="South Africa">South Africa</option><option value="Egypt">Egypt</option><option value="Pakistan">Pakistan</option>
-          <option value="Bangladesh">Bangladesh</option><option value="Nepal">Nepal</option><option value="Sri Lanka">Sri Lanka</option>
-          <option value="UAE">UAE</option><option value="Saudi Arabia">Saudi Arabia</option>
-        </select>
-        <button type="submit">Join Chat</button>
-      </form>
-    </div>
+</div>
+ 
+<script>
+// ===================== SOCKET =====================
+let socket;
+try { socket = io("https://chat-hook-1.onrender.com",{transports:["websocket","polling"]}); }
+catch(e) { socket={emit:()=>{},on:()=>{}}; }
+ 
+// ===================== STATE =====================
+let user = {name:'',gender:'',region:'',avatarStyle:'av-gradient',bio:'',youtube:'',instagram:'',photoUrl:'',picEffect:'pfx-none'};
+let currentJoke='';
+let curBg='default';
+let animRafs={};
+const jokes=["Why don't scientists trust atoms? Because they make up everything!","Why did the scarecrow win? He was outstanding in his field!","What do you call fake noodles? An impasta!","I told my wife she was drawing her eyebrows too high. She looked surprised.","Why don't skeletons fight each other? They don't have the guts.","What do you call cheese that isn't yours? Nacho cheese!","I'm reading a book about anti-gravity. It's impossible to put down.","Did you hear about the mathematician who's afraid of negative numbers? He'll stop at nothing to avoid them.","Why did the bicycle fall over? Because it was two-tired!","How do you organize a space party? You planet!"];
+ 
+// ===================== AVATAR CONFIGS =====================
+const avatarStyles=[
+  {k:'av-gradient',n:'Gradient'},
+  {k:'av-neon',n:'Neon'},
+  {k:'av-spin',n:'Cosmic Spin'},
+  {k:'av-wave',n:'Wave'},
+  {k:'av-plasma',n:'Plasma'},
+  {k:'av-cyber',n:'Cyber'},
+  {k:'av-aurora',n:'Aurora'},
+  {k:'av-lava',n:'Lava'},
+  {k:'av-ice',n:'Ice'},
+  {k:'av-galaxy',n:'Galaxy'},
+  {k:'av-quantum',n:'Quantum'},
+  {k:'av-glitch',n:'Glitch'},
+  {k:'av-crystal',n:'Crystal'},
+  {k:'av-thunder',n:'Thunder'},
+  {k:'av-sunset',n:'Sunset'},
+  {k:'av-wave',n:'Ocean'},
+];
+ 
+const picEffects=[
+  {k:'pfx-none',n:'None',emoji:'⬜'},
+  {k:'pfx-neon-glow',n:'Neon Glow',emoji:'💙'},
+  {k:'pfx-rainbow',n:'Rainbow',emoji:'🌈'},
+  {k:'pfx-fire',n:'Fire Ring',emoji:'🔥'},
+  {k:'pfx-galaxy',n:'Galaxy',emoji:'🌌'},
+  {k:'pfx-electric',n:'Electric',emoji:'⚡'},
+  {k:'pfx-hologram',n:'Hologram',emoji:'🎆'},
+  {k:'pfx-aurora',n:'Aurora',emoji:'🌟'},
+  {k:'pfx-pulse',n:'Pulse',emoji:'💚'},
+  {k:'pfx-diamond',n:'Diamond',emoji:'💎'},
+];
+ 
+// ===================== BG CONFIGS =====================
+const bgAnims=[
+  {id:'default',n:'Cosmic Orbs',emoji:'🔮',cat:'space'},
+  {id:'warp',n:'Warp Speed',emoji:'🚀',cat:'space'},
+  {id:'galaxy',n:'Galaxy',emoji:'🌌',cat:'space'},
+  {id:'nebula',n:'Nebula',emoji:'✨',cat:'space'},
+  {id:'aurora',n:'Aurora',emoji:'🌅',cat:'nature'},
+  {id:'fire',n:'Inferno',emoji:'🔥',cat:'fire'},
+  {id:'lava',n:'Lava Flow',emoji:'🌋',cat:'fire'},
+  {id:'electric',n:'Electric Storm',emoji:'⚡',cat:'fire'},
+  {id:'thunder3d',n:'Thunder 3D',emoji:'🌩️',cat:'special'},
+  {id:'quantum',n:'Quantum Dots',emoji:'🔵',cat:'special'},
+  {id:'ocean',n:'Deep Ocean',emoji:'🌊',cat:'nature'},
+  {id:'sakura',n:'Sakura',emoji:'🌸',cat:'nature'},
+  {id:'cyber',n:'Cyber Rain',emoji:'💻',cat:'cyber'},
+  {id:'matrix',n:'Matrix',emoji:'🟩',cat:'cyber'},
+  {id:'hologram',n:'Hologram',emoji:'🎆',cat:'cyber'},
+  {id:'synthwave',n:'Synthwave',emoji:'🎵',cat:'cyber'},
+  {id:'plasma',n:'Plasma',emoji:'🌈',cat:'fire'},
+  {id:'crystal3d',n:'Crystal 3D',emoji:'💎',cat:'special'},
+  {id:'dna',n:'DNA Helix',emoji:'🧬',cat:'special'},
+  {id:'vortex',n:'Vortex',emoji:'🌪️',cat:'special'},
+  {id:'sunrise',n:'Sunrise',emoji:'🌄',cat:'nature'},
+];
+ 
+let curCat='all';
+ 
+function buildAnimGrid(){
+  const grid=document.getElementById('animGrid');
+  grid.innerHTML='';
+  const list=curCat==='all'?bgAnims:bgAnims.filter(a=>a.cat===curCat);
+  list.forEach(a=>{
+    const d=document.createElement('div');
+    d.className='anim-item'+(a.id===curBg?' active':'');
+    d.innerHTML=`<div class="anim-thumb">${a.emoji}</div><div class="anim-name">${a.n}</div>`;
+    d.onclick=()=>{switchBg(a.id);buildAnimGrid();showToast(`${a.n} applied!`);};
+    grid.appendChild(d);
+  });
+}
+ 
+function switchCat(cat,el){
+  curCat=cat;
+  document.querySelectorAll('.cat-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  buildAnimGrid();
+}
+ 
+// ===================== SAVE/LOAD =====================
+function save(){localStorage.setItem('chv3',JSON.stringify(user));}
+function load(){
+  const s=localStorage.getItem('chv3');
+  if(s){user=Object.assign({bio:'',youtube:'',instagram:'',photoUrl:'',picEffect:'pfx-none',avatarStyle:'av-gradient'},JSON.parse(s));return true;}
+  return false;
+}
+ 
+// ===================== APPLY AVATAR =====================
+function applyAvatar(el,wrap,size){
+  if(user.photoUrl){
+    el.innerHTML=`<img src="${user.photoUrl}" alt="">`;
+    el.style.background='transparent';
+    el.className=el.className.replace(/av-\w+/g,'').trim();
+  } else {
+    el.innerHTML=user.name?user.name.charAt(0).toUpperCase():'?';
+    el.className=el.className.replace(/av-\w+/g,'').trim()+' '+(user.avatarStyle||'av-gradient');
+  }
+  if(wrap){
+    wrap.className=wrap.className.replace(/pfx-\w+/g,'').trim()+' '+(user.picEffect||'pfx-none');
+  }
+}
+ 
+function refreshTopAvatar(){
+  const el=document.getElementById('userAvatar');
+  const wrap=document.getElementById('topAvatarWrap');
+  applyAvatar(el,wrap);
+}
+ 
+// ===================== MESSAGES =====================
+const mc=document.getElementById('message-container');
+ 
+function sysMsg(txt){
+  const d=document.createElement('div');
+  d.className='message';
+  d.innerHTML=`<div style="text-align:center;width:100%;"><span style="display:inline-block;background:rgba(100,100,255,.18);color:var(--text-muted);padding:5px 12px;border-radius:10px;font-size:11px;">${txt}</span></div>`;
+  mc.appendChild(d);mc.scrollTop=mc.scrollHeight;
+}
+ 
+function addMsg(msg,u,own){
+  const d=document.createElement('div');
+  d.className='message '+(own?'own':'other');
+  const init=u.name?u.name.charAt(0).toUpperCase():'?';
+  const avCls=u.photoUrl?'':' '+(u.avatarStyle||'av-gradient');
+  const avContent=u.photoUrl?`<img src="${u.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`:init;
+  const pfxCls=u.picEffect||'pfx-none';
+  d.innerHTML=`<div class="msg-avatar-wrap ${pfxCls}">
+    <div class="user-avatar${avCls}" style="width:32px!important;height:32px!important;font-size:13px!important;cursor:default;">${avContent}</div>
   </div>
-
-  <!-- Animation Modal (simplified) -->
-  <div id="animation-modal" class="comedy-modal" style="display: none;">
-    <div class="comedy-card">
-      <h2>✨ Background Animation</h2>
-      <p>Coming soon! More animations in next update.</p>
-      <button class="close-comedy-btn" onclick="closeAnimationSelector()" style="margin-top: 15px;">Close</button>
-    </div>
-  </div>
-
-  <script>
-    // ======================== LOCALSTORAGE LOGIN SYSTEM ========================
-    let socket;
-    try {
-      socket = io("https://chat-hook-1.onrender.com", {
-        transports: ["websocket", "polling"]
-      });
-    } catch (error) {
-      socket = { emit: function() { }, on: function() { } };
+  <div class="message-bubble">
+    <div class="message-user"><span class="user-name">${esc(u.name||'?')}</span></div>
+    <div class="message-content">${esc(msg)}</div>
+    <div class="message-meta"><span>${u.gender||''}${u.region?' • '+u.region:''}</span><span>${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div>
+  </div>`;
+  mc.appendChild(d);mc.scrollTop=mc.scrollHeight;
+}
+ 
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+function showToast(m){const d=document.createElement('div');d.className='toast';d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2000);}
+ 
+// ===================== JOIN =====================
+document.getElementById('join-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('join-name').value.trim();
+  const gender=document.getElementById('join-gender').value;
+  const region=document.getElementById('join-region').value;
+  if(!name||!gender||!region){alert('Sab fields fill karo!');return;}
+  let joined=false;
+  socket.emit('join',{name,gender,region},(res)=>{
+    if(joined)return;joined=true;
+    if(res&&!res.success){alert(res.message||'Username already taken!');return;}
+    doJoin(name,gender,region,res&&res.user);
+  });
+  setTimeout(()=>{if(!joined){joined=true;doJoin(name,gender,region,null);}},2500);
+});
+ 
+function doJoin(name,gender,region,srv){
+  if(user.name)return;
+  user.name=name;user.gender=gender;user.region=region;
+  if(srv)Object.assign(user,srv);
+  save();
+  refreshTopAvatar();
+  document.getElementById('join-modal').style.display='none';
+  document.getElementById('send-container').style.display='flex';
+  sysMsg(`✨ Welcome ${user.name}!`);
+  socket.emit('new-user-joined',user);
+}
+ 
+// ===================== SOCKET =====================
+socket.on('user-joined',u=>sysMsg(`🎉 ${u.name} joined`));
+socket.on('receive',d=>addMsg(d.message,d.user,false));
+socket.on('left',u=>sysMsg(`👋 ${u.name} left`));
+socket.on('disconnect',()=>sysMsg('⚠️ Disconnected'));
+ 
+document.getElementById('send-container').addEventListener('submit',e=>{
+  e.preventDefault();
+  const msg=document.getElementById('messageInp').value.trim();
+  if(!msg)return;
+  addMsg(msg,user,true);
+  socket.emit('send',{message:msg,user});
+  document.getElementById('messageInp').value='';
+});
+ 
+// ===================== PROFILE =====================
+function openProfile(){
+  if(!user.name){alert('Pehle join karo!');return;}
+  document.getElementById('profile-modal').classList.add('open');
+  document.getElementById('pname').textContent=user.name;
+  document.getElementById('pregion').textContent=user.region||'';
+  document.getElementById('bioDisplay').textContent=user.bio||'';
+  document.getElementById('bioInp').value=user.bio||'';
+  document.getElementById('ytInp').value=user.youtube||'';
+  document.getElementById('igInp').value=user.instagram||'';
+  renderSocials();
+  const pa=document.getElementById('profileAvatar');
+  const pw=document.getElementById('profileAvatarWrap');
+  applyAvatar(pa,pw,70);
+  buildAvGrid();
+  buildPfxGrid();
+}
+function closeProfile(){document.getElementById('profile-modal').classList.remove('open');}
+ 
+function renderSocials(){
+  const c=document.getElementById('socialDisplay');c.innerHTML='';
+  if(user.youtube)c.innerHTML+=`<a href="${user.youtube}" target="_blank">▶️ YouTube</a>`;
+  if(user.instagram)c.innerHTML+=`<a href="${user.instagram}" target="_blank">📸 Instagram</a>`;
+}
+ 
+function changeName(){
+  const n=document.getElementById('nameInp').value.trim();
+  if(!n)return;
+  const old=user.name;user.name=n;save();
+  refreshTopAvatar();
+  document.getElementById('pname').textContent=n;
+  document.getElementById('nameInp').value='';
+  applyAvatar(document.getElementById('profileAvatar'),document.getElementById('profileAvatarWrap'),70);
+  sysMsg(`${old} changed name to ${n}`);showToast('Name saved!');
+  socket.emit('name-changed',{oldName:old,newName:n,user});
+}
+ 
+function saveBio(){user.bio=document.getElementById('bioInp').value.trim();save();document.getElementById('bioDisplay').textContent=user.bio;showToast('Bio saved!');}
+function saveSocials(){user.youtube=document.getElementById('ytInp').value.trim();user.instagram=document.getElementById('igInp').value.trim();save();renderSocials();showToast('Links saved!');}
+function logoutUser(){if(confirm('Logout karna hai?')){localStorage.removeItem('chv3');location.reload();}}
+ 
+// ===================== PHOTO =====================
+function triggerPhotoUpload(){document.getElementById('photo-upload').click();}
+function handlePhoto(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    user.photoUrl=ev.target.result;save();
+    refreshTopAvatar();
+    applyAvatar(document.getElementById('profileAvatar'),document.getElementById('profileAvatarWrap'),70);
+    showToast('Photo updated!');
+  };
+  r.readAsDataURL(f);e.target.value='';
+}
+ 
+// ===================== AVATAR GRID =====================
+function buildAvGrid(){
+  const g=document.getElementById('avGrid');g.innerHTML='';
+  avatarStyles.forEach(a=>{
+    const w=document.createElement('div');
+    const d=document.createElement('div');
+    d.className='av-item '+a.k+(user.avatarStyle===a.k&&!user.photoUrl?' selected':'');
+    d.onclick=()=>{user.avatarStyle=a.k;user.photoUrl='';save();refreshTopAvatar();applyAvatar(document.getElementById('profileAvatar'),document.getElementById('profileAvatarWrap'),70);buildAvGrid();buildPfxGrid();showToast(a.n+' applied!');};
+    const lbl=document.createElement('div');lbl.className='av-label';lbl.textContent=a.n;
+    w.appendChild(d);w.appendChild(lbl);g.appendChild(w);
+  });
+}
+ 
+// ===================== PFX GRID =====================
+function buildPfxGrid(){
+  const g=document.getElementById('pfxGrid');g.innerHTML='';
+  picEffects.forEach(fx=>{
+    const item=document.createElement('div');
+    item.className='pfx-item'+(user.picEffect===fx.k?' selected':'');
+    // Preview
+    const preview=document.createElement('div');preview.className='pfx-preview';
+    const wrap=document.createElement('div');
+    wrap.className=`pic-effect-wrap ${fx.k}`;
+    wrap.style.cssText='width:44px;height:44px;';
+    const av=document.createElement('div');
+    av.className='user-avatar '+(user.avatarStyle||'av-gradient');
+    av.style.cssText='width:44px!important;height:44px!important;font-size:16px!important;';
+    if(user.photoUrl){av.innerHTML=`<img src="${user.photoUrl}" alt="">`;av.style.background='transparent';av.className='user-avatar';}
+    else{av.textContent=user.name?user.name.charAt(0).toUpperCase():'?';}
+    wrap.appendChild(av);preview.appendChild(wrap);
+    const lbl=document.createElement('div');lbl.className='pfx-label';lbl.textContent=fx.n;
+    item.appendChild(preview);item.appendChild(lbl);
+    item.onclick=()=>{user.picEffect=fx.k;save();refreshTopAvatar();buildPfxGrid();showToast(fx.n+' effect!');};
+    g.appendChild(item);
+  });
+}
+ 
+// ===================== COMEDY =====================
+function openComedy(){document.getElementById('comedy-modal').classList.add('open');}
+function closeComedy(){document.getElementById('comedy-modal').classList.remove('open');}
+function newJoke(){const j=jokes[Math.floor(Math.random()*jokes.length)];currentJoke=j;document.getElementById('jokeDisplay').textContent=j;}
+function shareJoke(){if(!currentJoke||!user.name)return;const m='😂 '+currentJoke;addMsg(m,user,true);socket.emit('send',{message:m,user});closeComedy();}
+function addJoke(){const i=document.getElementById('newJokeInp');if(!i.value.trim())return;jokes.push(i.value.trim());currentJoke=i.value.trim();document.getElementById('jokeDisplay').textContent=currentJoke;i.value='';showToast('Joke added!');}
+ 
+// ===================== ANIMATION SELECTOR =====================
+function openAnimSel(){document.getElementById('anim-modal').classList.add('open');buildAnimGrid();}
+function closeAnimSel(){document.getElementById('anim-modal').classList.remove('open');}
+ 
+// ===================== BACKGROUND SWITCH =====================
+function rc(id){const c=document.getElementById(id);if(!c)return null;c.width=window.innerWidth;c.height=window.innerHeight;return c.getContext('2d');}
+ 
+function switchBg(id){
+  Object.values(animRafs).forEach(r=>cancelAnimationFrame(r));
+  animRafs={};
+  document.querySelectorAll('.bg-layer').forEach(l=>{l.classList.remove('active');});
+  const el=document.getElementById('bg-'+id);
+  if(el){el.classList.add('active');}
+  curBg=id;
+  localStorage.setItem('chHookBg',id);
+  switch(id){
+    case 'matrix': bgMatrix();break;
+    case 'warp': bgWarp();break;
+    case 'galaxy': bgGalaxy();break;
+    case 'aurora': bgAurora();break;
+    case 'fire': bgFire();break;
+    case 'lava': bgLava();break;
+    case 'electric': bgElectric();break;
+    case 'quantum': bgQuantum();break;
+    case 'ocean': bgOcean();break;
+    case 'cyber': bgCyber();break;
+    case 'nebula': bgNebula();break;
+    case 'synthwave': bgSynthwave();break;
+    case 'plasma': bgPlasma();break;
+    case 'crystal3d': bgCrystal3d();break;
+    case 'dna': bgDna();break;
+    case 'vortex': bgVortex();break;
+    case 'sakura': bgSakura();break;
+    case 'hologram': bgHologram();break;
+    case 'thunder3d': bgThunder3d();break;
+    case 'sunrise': bgSunrise();break;
+  }
+}
+ 
+/* --- BG FUNCTIONS --- */
+function bgMatrix(){
+  const ctx=rc('matrix-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const cols=Math.floor(W/14);const drops=Array(cols).fill(1);
+  const f=()=>{
+    ctx.fillStyle='rgba(0,0,0,0.05)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#0f0';ctx.font='13px monospace';
+    drops.forEach((y,i)=>{ctx.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,y*14);if(y*14>H&&Math.random()>.975)drops[i]=0;drops[i]++;});
+    animRafs.matrix=requestAnimationFrame(f);};f();
+}
+function bgWarp(){
+  const ctx=rc('warp-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const stars=Array.from({length:400},()=>({x:(Math.random()-.5)*W,y:(Math.random()-.5)*H,z:Math.random()*W}));
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,15,0.25)';ctx.fillRect(0,0,W,H);
+    stars.forEach(s=>{s.z-=8;if(s.z<=0){s.x=(Math.random()-.5)*W;s.y=(Math.random()-.5)*H;s.z=W;}
+    const sx=s.x/s.z*W+W/2,sy=s.y/s.z*H+H/2,r=Math.max(0,(1-s.z/W)*3);
+    const a=1-s.z/W;ctx.fillStyle=`rgba(${Math.floor(100+a*155)},${Math.floor(150+a*105)},255,${a})`;
+    ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();});
+    animRafs.warp=requestAnimationFrame(f);};f();
+}
+function bgGalaxy(){
+  const ctx=rc('galaxy-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const pts=Array.from({length:600},()=>({a:Math.random()*Math.PI*2,r:Math.random()*Math.min(W,H)*.45,sp:.001+Math.random()*.003,c:`hsl(${200+Math.random()*160},80%,${50+Math.random()*30}%)`}));
+  const f=()=>{
+    ctx.fillStyle='rgba(3,3,15,0.08)';ctx.fillRect(0,0,W,H);
+    pts.forEach(p=>{p.a+=p.sp;const x=W/2+Math.cos(p.a)*p.r,y=H/2+Math.sin(p.a)*p.r*.45;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();});
+    animRafs.galaxy=requestAnimationFrame(f);};f();
+}
+function bgAurora(){
+  const inner=document.getElementById('aurora-inner');
+  inner.innerHTML='';
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');
+    d.style.cssText=`position:absolute;width:${200+Math.random()*200}%;height:${30+Math.random()*40}%;top:${10+i*15}%;left:-50%;border-radius:50%;opacity:0.15;filter:blur(${30+Math.random()*30}px);animation:auroraD${i} ${6+Math.random()*8}s infinite alternate ease-in-out;`;
+    const colors=['rgba(0,255,136,0.5)','rgba(0,204,255,0.5)','rgba(138,43,226,0.5)','rgba(255,0,128,0.4)','rgba(0,255,100,0.4)'];
+    d.style.background=colors[i%colors.length];
+    inner.appendChild(d);
+    const style=document.createElement('style');
+    style.textContent=`@keyframes auroraD${i}{0%{transform:translateX(-${20+Math.random()*30}%) scaleY(${0.5+Math.random()*.5});}100%{transform:translateX(${20+Math.random()*30}%) scaleY(${0.8+Math.random()*.4});}}`;
+    document.head.appendChild(style);
+  }
+}
+function bgFire(){
+  const ctx=rc('fire-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const buf=new Float32Array(W*H);
+  const f=()=>{
+    for(let x=0;x<W;x++)buf[(H-1)*W+x]=Math.random()>.35?Math.random()*255:0;
+    for(let y=0;y<H-1;y++)for(let x=0;x<W;x++)buf[y*W+x]=(buf[(y+1)*W+((x-1+W)%W)]+buf[(y+1)*W+x]+buf[(y+1)*W+((x+1)%W)]+buf[Math.min(H-1,y+2)*W+x])/4.05;
+    const img=ctx.createImageData(W,H);
+    for(let i=0;i<W*H;i++){const v=buf[i];img.data[i*4]=Math.min(255,v*2.5);img.data[i*4+1]=Math.max(0,v-80)*1.5;img.data[i*4+2]=0;img.data[i*4+3]=v;}
+    ctx.putImageData(img,0,0);animRafs.fire=requestAnimationFrame(f);};f();
+}
+function bgLava(){
+  const ctx=rc('lava-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const blobs=Array.from({length:7},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*1.2,vy:(Math.random()-.5)*1.2,r:80+Math.random()*120,h:Math.random()*40+10}));
+  const f=()=>{
+    ctx.fillStyle='rgba(15,3,0,0.15)';ctx.fillRect(0,0,W,H);
+    blobs.forEach(b=>{b.x+=b.vx;b.y+=b.vy;b.h=(b.h+0.5)%360;
+    if(b.x<-b.r||b.x>W+b.r)b.vx*=-1;if(b.y<-b.r||b.y>H+b.r)b.vy*=-1;
+    const g=ctx.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    g.addColorStop(0,`hsla(${b.h},100%,60%,0.6)`);g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();});
+    animRafs.lava=requestAnimationFrame(f);};f();
+}
+function bgElectric(){
+  const ctx=rc('electric-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  function bolt(x1,y1,x2,y2,dep,ctx){if(dep<=0){ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);return;}const mx=(x1+x2)/2+(Math.random()-.5)*120,my=(y1+y2)/2+(Math.random()-.5)*120;bolt(x1,y1,mx,my,dep-1,ctx);bolt(mx,my,x2,y2,dep-1,ctx);}
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,15,0.35)';ctx.fillRect(0,0,W,H);
+    if(Math.random()<.07){
+      const colors=['rgba(0,204,255,0.9)','rgba(138,43,226,0.9)','rgba(0,255,136,0.9)','rgba(255,255,255,0.9)'];
+      ctx.strokeStyle=colors[Math.floor(Math.random()*colors.length)];ctx.lineWidth=1+Math.random()*2;
+      ctx.beginPath();bolt(Math.random()*W,0,Math.random()*W,H,6,ctx);ctx.stroke();
+      ctx.shadowColor=ctx.strokeStyle;ctx.shadowBlur=20;ctx.stroke();ctx.shadowBlur=0;
     }
-
-    // DOM elements
-    const joinModal = document.getElementById('join-modal');
-    const joinForm = document.getElementById('join-form');
-    const joinName = document.getElementById('join-name');
-    const joinGender = document.getElementById('join-gender');
-    const joinRegion = document.getElementById('join-region');
-    const sendContainer = document.getElementById('send-container');
-    const messageInput = document.getElementById('messageInp');
-    const messageContainer = document.getElementById('message-container');
-    const userAvatar = document.getElementById('userAvatar');
-
-    let currentUser = { name: '', gender: '', region: '', avatarStyle: 'avatar-gradient' };
-    let currentJoke = '';
-    let jokeCount = 0;
-    let jokesDatabase = [
-      "Why don't scientists trust atoms? Because they make up everything!",
-      "Why did the scarecrow win an award? He was outstanding in his field!",
-      "Why don't eggs tell jokes? They'd crack each other up!",
-      "What do you call a fake noodle? An impasta!",
-      "Why did the math book look so sad? Because it had too many problems!"
-    ];
-
-    // Helper functions
-    function appendSystemMessage(message) {
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'message';
-      msgDiv.innerHTML = `<div style="text-align: center; width: 100%;"><div style="display: inline-block; background: rgba(100, 100, 255, 0.2); color: var(--text-muted); padding: 6px 12px; border-radius: 12px; font-size: 12px;">${message}</div></div>`;
-      messageContainer.appendChild(msgDiv);
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
-
-    function appendMessage(message, userData, isOwn = false) {
-      const msgDiv = document.createElement('div');
-      msgDiv.className = `message ${isOwn ? 'own' : 'other'}`;
-      const initial = userData.name ? userData.name.charAt(0).toUpperCase() : '?';
-      const avatarClass = userData.avatarStyle || 'avatar-gradient';
-      msgDiv.innerHTML = `
-        <div class="message-bubble">
-          <div class="message-user">
-            <div class="user-avatar ${avatarClass}" style="display: flex; align-items: center; justify-content: center;">${initial}</div>
-            <div class="user-name">${userData.name || 'Unknown'}</div>
-          </div>
-          <div class="message-content">${escapeHtml(message)}</div>
-          <div class="message-meta">
-            <span>${userData.gender || 'Unknown'} • ${userData.region || 'Unknown'}</span>
-            <span>${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-          </div>
-        </div>
-      `;
-      messageContainer.appendChild(msgDiv);
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function showConfirmationMessage(msg) {
-      const div = document.createElement('div');
-      div.className = 'confirmation-message';
-      div.textContent = msg;
-      document.body.appendChild(div);
-      setTimeout(() => div.remove(), 2000);
-    }
-
-    // Join function - saves to localStorage
-    function joinChat() {
-      const name = joinName.value.trim();
-      const gender = joinGender.value;
-      const region = joinRegion.value;
-      if (!name || !gender || !region) {
-        alert('Please fill all fields');
-        return;
+    animRafs.electric=requestAnimationFrame(f);};f();
+}
+function bgQuantum(){
+  const ctx=rc('quantum-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const dots=Array.from({length:70},()=>({x:Math.random()*W,y:Math.random()*H,r:4+Math.random()*16,ph:Math.random()*Math.PI*2,sp:.02+Math.random()*.05,h:Math.random()*360}));
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,15,0.12)';ctx.fillRect(0,0,W,H);
+    dots.forEach((d,i)=>{d.ph+=d.sp;const r=d.r*(.4+Math.abs(Math.sin(d.ph))*.6),a=.3+Math.abs(Math.sin(d.ph))*.7;
+    ctx.fillStyle=`hsla(${d.h},80%,60%,${a})`;ctx.beginPath();ctx.arc(d.x,d.y,r,0,Math.PI*2);ctx.fill();
+    for(let j=i+1;j<dots.length;j++){const d2=dots[j],dist=Math.hypot(d.x-d2.x,d.y-d2.y);if(dist<130){ctx.strokeStyle=`rgba(138,43,226,${(1-dist/130)*.25})`;ctx.lineWidth=.5;ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d2.x,d2.y);ctx.stroke();}}});
+    animRafs.quantum=requestAnimationFrame(f);};f();
+}
+function bgOcean(){
+  const ctx=rc('ocean-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const f=()=>{
+    ctx.fillStyle='rgba(0,10,30,0.15)';ctx.fillRect(0,0,W,H);
+    for(let y=0;y<H;y+=4){const off=Math.sin(y*.02+t)*30+Math.sin(y*.01+t*.7)*20;const a=(y/H)*.3;ctx.strokeStyle=`rgba(0,${100+Math.floor(a*155)},${200+Math.floor(a*55)},0.15)`;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y+off);ctx.stroke();}
+    t+=.02;animRafs.ocean=requestAnimationFrame(f);};f();
+}
+function bgCyber(){
+  const ctx=rc('cyber-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;const chars='01ABCDEFabcdef!@#$><';
+  const cols=Math.floor(W/16);const drops=Array(cols).fill(0).map(()=>Math.random()*-50);
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,15,0.06)';ctx.fillRect(0,0,W,H);ctx.font='bold 14px monospace';
+    drops.forEach((y,i)=>{const ch=chars[Math.floor(Math.random()*chars.length)];ctx.fillStyle=`rgb(0,${200+Math.floor(Math.random()*55)},${100+Math.floor(Math.random()*100)})`;ctx.fillText(ch,i*16,y*16);if(y*16>H)drops[i]=Math.random()*-20;drops[i]++;});
+    animRafs.cyber=requestAnimationFrame(f);};f();
+}
+function bgNebula(){
+  const ctx=rc('nebula-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const clouds=Array.from({length:8},()=>({x:Math.random()*W,y:Math.random()*H,r:100+Math.random()*200,h:Math.random()*360,sp:.002+Math.random()*.005,ph:Math.random()*Math.PI*2}));
+  const stars=Array.from({length:200},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5,t:Math.random()*Math.PI*2}));
+  const f=()=>{
+    ctx.fillStyle='rgba(3,3,12,0.12)';ctx.fillRect(0,0,W,H);
+    clouds.forEach(c=>{c.ph+=c.sp;const x=c.x+Math.sin(c.ph)*30,y=c.y+Math.cos(c.ph*.7)*20;const g=ctx.createRadialGradient(x,y,0,x,y,c.r);g.addColorStop(0,`hsla(${c.h},70%,50%,.12)`);g.addColorStop(.5,`hsla(${(c.h+60)%360},60%,40%,.06)`);g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,c.r,0,Math.PI*2);ctx.fill();});
+    stars.forEach(s=>{s.t+=.01;const a=.4+.4*Math.sin(s.t);ctx.fillStyle=`rgba(255,255,255,${a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fill();});
+    animRafs.nebula=requestAnimationFrame(f);};f();
+}
+function bgSynthwave(){
+  const inner=document.getElementById('synthwave-inner');inner.innerHTML='';
+  inner.style.background='linear-gradient(180deg,#1a0030 0%,#2d0050 40%,#ff006620 60%,#ff4400 100%)';
+  // Sun
+  const sun=document.createElement('canvas');sun.style.cssText='position:absolute;left:50%;top:20%;transform:translateX(-50%);';sun.width=300;sun.height=150;
+  const sc=sun.getContext('2d');const sg=sc.createLinearGradient(0,0,0,150);sg.addColorStop(0,'#ff6b35');sg.addColorStop(.5,'#ff0080');sg.addColorStop(1,'rgba(255,0,128,0)');sc.fillStyle=sg;sc.beginPath();sc.arc(150,150,140,Math.PI,0);sc.fill();
+  // Horizontal lines on sun
+  sc.strokeStyle='rgba(26,0,48,0.6)';sc.lineWidth=4;for(let i=1;i<8;i++){sc.beginPath();sc.moveTo(10,150-i*15);sc.lineTo(290,150-i*15);sc.stroke();}
+  inner.appendChild(sun);
+  // Grid floor
+  const gc2=document.createElement('canvas');gc2.style.cssText='position:absolute;bottom:0;left:0;width:100%;';gc2.width=window.innerWidth;gc2.height=window.innerHeight*.55;
+  const g2=gc2.getContext('2d');
+  const grd=g2.createLinearGradient(0,0,0,gc2.height);grd.addColorStop(0,'rgba(255,0,128,0.6)');grd.addColorStop(1,'rgba(0,204,255,0.1)');
+  g2.strokeStyle=grd;g2.lineWidth=1;
+  const vp={x:gc2.width/2,y:0};const rows=20;const cols2=20;
+  for(let i=0;i<=rows;i++){const y2=i/rows*gc2.height;const t2=i/rows;const x1=vp.x*(1-t2);const x2=vp.x+(gc2.width-vp.x)*t2;g2.beginPath();g2.moveTo(x1,y2);g2.lineTo(x2,y2);g2.stroke();}
+  for(let i=-cols2;i<=cols2;i++){g2.beginPath();g2.moveTo(vp.x,vp.y);const ex=vp.x+i*(gc2.width/cols2);g2.lineTo(ex,gc2.height);g2.stroke();}
+  inner.appendChild(gc2);
+}
+function bgPlasma(){
+  const ctx=rc('plasma-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const f=()=>{
+    const img=ctx.createImageData(W,H);
+    for(let x=0;x<W;x+=2)for(let y=0;y<H;y+=2){const v=Math.sin(x/30+t)+Math.sin(y/30+t*.8)+Math.sin((x+y)/40+t*.6)+Math.sin(Math.sqrt(x*x+y*y)/25);const idx=(y*W+x)*4;const r=Math.floor((Math.sin(v*Math.PI)*127+128));const g=Math.floor((Math.sin(v*Math.PI+2)*127+128));const b=Math.floor((Math.sin(v*Math.PI+4)*127+128));for(let dx=0;dx<2;dx++)for(let dy=0;dy<2;dy++){const i=((y+dy)*W+(x+dx))*4;img.data[i]=r;img.data[i+1]=g;img.data[i+2]=b;img.data[i+3]=180;}}
+    ctx.putImageData(img,0,0);t+=.04;animRafs.plasma=requestAnimationFrame(f);};f();
+}
+function bgCrystal3d(){
+  const ctx=rc('crystal3d-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const crystals=Array.from({length:12},()=>({cx:Math.random()*W,cy:Math.random()*H,r:60+Math.random()*80,rot:Math.random()*Math.PI,sp:(Math.random()-.5)*.01,h:Math.random()*360}));
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,20,0.15)';ctx.fillRect(0,0,W,H);
+    crystals.forEach(c=>{
+      c.rot+=c.sp;
+      ctx.save();ctx.translate(c.cx,c.cy);ctx.rotate(c.rot);
+      for(let face=0;face<6;face++){
+        const a1=face/6*Math.PI*2+c.rot,a2=(face+1)/6*Math.PI*2+c.rot;
+        ctx.beginPath();ctx.moveTo(0,0);
+        ctx.lineTo(Math.cos(a1)*c.r,Math.sin(a1)*c.r*.6);
+        ctx.lineTo(Math.cos(a2)*c.r,Math.sin(a2)*c.r*.6);
+        ctx.closePath();
+        const grad=ctx.createLinearGradient(0,0,Math.cos(a1)*c.r,Math.sin(a1)*c.r);
+        grad.addColorStop(0,`hsla(${(c.h+face*30)%360},80%,70%,.4)`);
+        grad.addColorStop(1,`hsla(${(c.h+face*30+60)%360},60%,40%,.1)`);
+        ctx.fillStyle=grad;ctx.fill();
+        ctx.strokeStyle=`hsla(${(c.h+face*30)%360},90%,80%,.5)`;ctx.lineWidth=.5;ctx.stroke();
       }
-
-      // Save to localStorage
-      localStorage.setItem('chatHook_username', name);
-      localStorage.setItem('chatHook_gender', gender);
-      localStorage.setItem('chatHook_region', region);
-      localStorage.setItem('chatHook_avatarStyle', 'avatar-gradient');
-
-      currentUser = { name, gender, region, avatarStyle: 'avatar-gradient' };
-
-      // Update UI
-      userAvatar.textContent = name.charAt(0).toUpperCase();
-      userAvatar.className = `user-avatar avatar-gradient`;
-      userAvatar.style.display = 'flex';
-      joinModal.style.display = 'none';
-      sendContainer.style.display = 'flex';
-
-      appendSystemMessage(`✨ Welcome ${name} to Chat Hook! ✨`);
-      socket.emit('new-user-joined', currentUser);
-    }
-
-    // Logout function
-    function logout() {
-      localStorage.removeItem('chatHook_username');
-      localStorage.removeItem('chatHook_gender');
-      localStorage.removeItem('chatHook_region');
-      localStorage.removeItem('chatHook_avatarStyle');
-      location.reload();
-    }
-
-    // Auto-login on page load
-    function checkAutoLogin() {
-      const savedName = localStorage.getItem('chatHook_username');
-      const savedGender = localStorage.getItem('chatHook_gender');
-      const savedRegion = localStorage.getItem('chatHook_region');
-      const savedAvatar = localStorage.getItem('chatHook_avatarStyle') || 'avatar-gradient';
-      
-      if (savedName && savedGender && savedRegion) {
-        currentUser = { name: savedName, gender: savedGender, region: savedRegion, avatarStyle: savedAvatar };
-        userAvatar.textContent = savedName.charAt(0).toUpperCase();
-        userAvatar.className = `user-avatar ${savedAvatar}`;
-        userAvatar.style.display = 'flex';
-        joinModal.style.display = 'none';
-        sendContainer.style.display = 'flex';
-        appendSystemMessage(`🔁 Auto-login: Welcome back ${savedName}!`);
-        socket.emit('new-user-joined', currentUser);
-        return true;
-      }
-      return false;
-    }
-
-    // Socket event handlers
-    socket.on('user-joined', (user) => { appendSystemMessage(`🎉 ${user.name} joined the chat`); });
-    socket.on('receive', (data) => { appendMessage(data.message, data.user, false); });
-    socket.on('left', (user) => { appendSystemMessage(`👋 ${user.name} left the chat`); });
-    socket.on('connect', () => { console.log('Socket connected'); });
-    socket.on('disconnect', () => { appendSystemMessage('⚠️ Disconnected from server'); });
-
-    // Form submit handler
-    sendContainer.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const message = messageInput.value.trim();
-      if (!message) return;
-      appendMessage(message, currentUser, true);
-      socket.emit('send', { message: message, user: currentUser });
-      messageInput.value = '';
+      ctx.restore();
     });
-
-    // Join form submit
-    joinForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      joinChat();
-    });
-
-    // ======================== COMEDY CLUB FUNCTIONS ========================
-    function openComedyClub() { document.getElementById('comedy-modal').style.display = 'flex'; }
-    function closeComedyClub() { document.getElementById('comedy-modal').style.display = 'none'; }
-    
-    function getNewJoke() {
-      if (jokesDatabase.length === 0) return;
-      const randomIndex = Math.floor(Math.random() * jokesDatabase.length);
-      currentJoke = jokesDatabase[randomIndex];
-      document.getElementById('joke-display').textContent = currentJoke;
-      jokeCount++;
-    }
-
-    function shareJokeToChat() {
-      if (currentJoke && socket && currentUser.name) {
-        const jokeMsg = `😂 Comedy Club Joke: ${currentJoke}`;
-        appendMessage(jokeMsg, currentUser, true);
-        socket.emit('send', { message: jokeMsg, user: currentUser });
-        closeComedyClub();
-      } else if (!currentUser.name) {
-        alert("Please join the chat first to share jokes!");
+    t++;animRafs.crystal3d=requestAnimationFrame(f);};f();
+}
+function bgDna(){
+  const ctx=rc('dna-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,15,0.15)';ctx.fillRect(0,0,W,H);
+    for(let strand=0;strand<3;strand++){
+      const cx=W/4*(strand+1);
+      for(let y=0;y<H;y+=6){
+        const off=Math.sin(y*.025+t+strand*2.1)*70;
+        const a=(y/H);const hue=180+strand*60+t*15;
+        ctx.fillStyle=`hsla(${hue},80%,${50+a*30}%,0.8)`;
+        ctx.beginPath();ctx.arc(cx+off,y,3,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=`hsla(${hue+180},80%,${50+a*30}%,0.8)`;
+        ctx.beginPath();ctx.arc(cx-off,y,3,0,Math.PI*2);ctx.fill();
+        if(y%24<6){ctx.strokeStyle=`hsla(${hue},60%,60%,.3)`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx+off,y);ctx.lineTo(cx-off,y);ctx.stroke();}
       }
     }
-
-    function addNewJoke() {
-      const newJokeInput = document.getElementById('new-joke-input');
-      const newJoke = newJokeInput.value.trim();
-      if (newJoke) {
-        jokesDatabase.push(newJoke);
-        newJokeInput.value = '';
-        currentJoke = newJoke;
-        document.getElementById('joke-display').textContent = currentJoke;
-        appendSystemMessage(`📝 You added a new joke to the Comedy Club!`);
-      }
+    t+=.025;animRafs.dna=requestAnimationFrame(f);};f();
+}
+function bgVortex(){
+  const ctx=rc('vortex-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  const pts=Array.from({length:400},()=>({a:Math.random()*Math.PI*2,r:Math.random()*Math.min(W,H)*.4,sp:.008+Math.random()*.015,h:Math.random()*360}));
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,15,0.1)';ctx.fillRect(0,0,W,H);
+    pts.forEach(p=>{p.a+=p.sp;p.r*=.999;if(p.r<2){p.r=Math.min(W,H)*.4;p.h=Math.random()*360;}
+    const x=W/2+Math.cos(p.a)*p.r,y=H/2+Math.sin(p.a)*p.r*.7;
+    ctx.fillStyle=`hsla(${p.h},80%,60%,.6)`;ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();});
+    animRafs.vortex=requestAnimationFrame(f);};f();
+}
+function bgSakura(){
+  const ctx=rc('sakura-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;
+  ctx.fillStyle='#0a0010';ctx.fillRect(0,0,W,H);
+  const petals=Array.from({length:80},()=>({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.8,vy:.5+Math.random()*.8,rot:Math.random()*Math.PI*2,rsp:(Math.random()-.5)*.05,size:6+Math.random()*12,opacity:.6+Math.random()*.4,hue:330+Math.random()*30}));
+  function drawPetal(x,y,size,rot,hue,a){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.globalAlpha=a;ctx.fillStyle=`hsla(${hue},80%,80%,1)`;ctx.beginPath();ctx.ellipse(0,0,size,size*.5,0,0,Math.PI*2);ctx.fill();ctx.restore();}
+  const f=()=>{
+    ctx.fillStyle='rgba(5,0,15,0.1)';ctx.fillRect(0,0,W,H);
+    // Night sky stars
+    if(Math.random()>.97){ctx.fillStyle='rgba(255,200,230,0.8)';ctx.beginPath();ctx.arc(Math.random()*W,Math.random()*H*.5,.5+Math.random()*1.5,0,Math.PI*2);ctx.fill();}
+    petals.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.rot+=p.rsp;p.vx+=Math.sin(p.y*.01)*.02;if(p.y>H+20)p.y=-20;if(p.x<-20)p.x=W+20;if(p.x>W+20)p.x=-20;drawPetal(p.x,p.y,p.size,p.rot,p.hue,p.opacity);});
+    animRafs.sakura=requestAnimationFrame(f);};f();
+}
+function bgHologram(){
+  const ctx=rc('hologram-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const f=()=>{
+    ctx.fillStyle='rgba(0,5,20,0.2)';ctx.fillRect(0,0,W,H);
+    // Scan lines
+    for(let y=0;y<H;y+=4){const a=(.1+.05*Math.sin(y*.05+t))*(Math.random()>.95?.5:1);ctx.fillStyle=`rgba(0,204,255,${a*.08})`;ctx.fillRect(0,y,W,2);}
+    // Glitch bars
+    if(Math.random()>.92){const gy=Math.random()*H,gh=5+Math.random()*30;ctx.fillStyle=`rgba(0,255,200,${.05+Math.random()*.15})`;ctx.fillRect(0,gy,W,gh);}
+    // Grid
+    ctx.strokeStyle='rgba(0,204,255,0.06)';ctx.lineWidth=.5;
+    for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    t+=.05;animRafs.hologram=requestAnimationFrame(f);};f();
+}
+function bgThunder3d(){
+  const ctx=rc('thunder3d-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const clouds=Array.from({length:5},()=>({x:Math.random()*W,y:50+Math.random()*150,w:200+Math.random()*200,h:60+Math.random()*80}));
+  function bolt3d(x1,y1,x2,y2,dep){if(dep<=0){ctx.lineTo(x2,y2);return;}const mx=(x1+x2)/2+(Math.random()-.5)*100,my=(y1+y2)/2+(Math.random()-.5)*50;bolt3d(x1,y1,mx,my,dep-1);bolt3d(mx,my,x2,y2,dep-1);}
+  const f=()=>{
+    ctx.fillStyle='rgba(5,5,20,0.25)';ctx.fillRect(0,0,W,H);
+    clouds.forEach(c=>{const g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,c.w);g.addColorStop(0,'rgba(80,80,120,0.4)');g.addColorStop(1,'transparent');ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(c.x,c.y,c.w,c.h,0,0,Math.PI*2);ctx.fill();});
+    if(Math.random()<.04){
+      const bx=Math.random()*W;
+      ctx.strokeStyle='rgba(200,200,255,0.95)';ctx.lineWidth=2;ctx.shadowColor='#0cf';ctx.shadowBlur=30;
+      ctx.beginPath();ctx.moveTo(bx,0);bolt3d(bx,0,bx+(Math.random()-.5)*200,H*.7,7);ctx.stroke();
+      ctx.lineWidth=1;ctx.strokeStyle='rgba(138,43,226,0.7)';ctx.beginPath();ctx.moveTo(bx,0);bolt3d(bx,0,bx+(Math.random()-.5)*100,H*.5,5);ctx.stroke();
+      ctx.shadowBlur=0;
     }
-
-    // ======================== PROFILE MODAL FUNCTIONS ========================
-    function openProfileModal() {
-      if (!currentUser.name) { alert('Please join the chat first!'); return; }
-      document.getElementById('profile-modal').style.display = 'flex';
-      document.getElementById('profile-name').textContent = currentUser.name;
-      document.getElementById('profile-region').textContent = currentUser.region || 'Unknown';
-      const profileAvatar = document.getElementById('profile-avatar-display');
-      profileAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-      profileAvatar.className = `profile-avatar ${currentUser.avatarStyle || 'avatar-gradient'}`;
-      generateAvatarGrid();
-    }
-    
-    function closeProfileModal() { document.getElementById('profile-modal').style.display = 'none'; }
-    
-    function changeName() {
-      const newName = document.getElementById('new-name-input').value.trim();
-      if (!newName) { alert('Please enter a new name'); return; }
-      const oldName = currentUser.name;
-      currentUser.name = newName;
-      userAvatar.textContent = newName.charAt(0).toUpperCase();
-      document.getElementById('profile-name').textContent = newName;
-      document.getElementById('profile-avatar-display').textContent = newName.charAt(0).toUpperCase();
-      document.getElementById('new-name-input').value = '';
-      showConfirmationMessage(`Name changed to ${newName}!`);
-      appendSystemMessage(`${oldName} changed their name to ${newName}`);
-      socket.emit('name-changed', { oldName, newName, user: currentUser });
-      localStorage.setItem('chatHook_username', newName);
-    }
-    
-    function generateAvatarGrid() {
-      const grid = document.getElementById('avatar-grid');
-      grid.innerHTML = '';
-      const avatars = [
-        { class: 'avatar-gradient', name: 'Gradient Flow' },
-        { class: 'avatar-neon', name: 'Neon Pulse' },
-        { class: 'avatar-spin', name: 'Cosmic Spin' },
-        { class: 'avatar-wave', name: 'Rainbow Wave' },
-        { class: 'avatar-glitch', name: 'Glitch Effect' },
-        { class: 'avatar-hologram', name: 'Hologram' },
-        { class: 'avatar-liquid', name: 'Liquid Metal' },
-        { class: 'avatar-fire', name: 'Fire Particle' },
-        { class: 'avatar-matrix', name: 'Matrix Code' },
-        { class: 'avatar-aurora', name: 'Aurora' },
-        { class: 'avatar-quantum', name: 'Quantum Ripple' },
-        { class: 'avatar-cyber', name: 'Cyber Grid' },
-        { class: 'avatar-crystal', name: 'Crystal Shine' },
-        { class: 'avatar-bubble', name: 'Bubble Universe' },
-        { class: 'avatar-galaxy', name: 'Galaxy Spin' },
-        { class: 'avatar-lightning', name: 'Lightning Strike' }
-      ];
-      avatars.forEach(avatar => {
-        const option = document.createElement('div');
-        option.className = `avatar-option ${avatar.class}`;
-        if (currentUser.avatarStyle === avatar.class) option.classList.add('selected');
-        option.setAttribute('data-avatar', avatar.class);
-        option.setAttribute('data-name', avatar.name);
-        option.onclick = (e) => selectAvatar(avatar.class, e);
-        grid.appendChild(option);
-      });
-    }
-    
-    function selectAvatar(avatarClass, event) {
-      // Update selected state
-      document.querySelectorAll('.avatar-option').forEach(opt => opt.classList.remove('selected'));
-      event.currentTarget.classList.add('selected');
-      
-      // Update current user avatar style
-      currentUser.avatarStyle = avatarClass;
-      
-      // Update main user avatar
-      userAvatar.className = `user-avatar ${avatarClass}`;
-      userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-      
-      // Update profile avatar display
-      const profileAvatar = document.getElementById('profile-avatar-display');
-      profileAvatar.className = `profile-avatar ${avatarClass}`;
-      profileAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-      
-      // Save to localStorage
-      localStorage.setItem('chatHook_avatarStyle', avatarClass);
-      
-      const avatarName = event.currentTarget.getAttribute('data-name') || 'Avatar';
-      showConfirmationMessage(`${avatarName} avatar applied!`);
-      
-      // Notify other users about avatar change
-      socket.emit('avatar-changed', { user: currentUser, avatarStyle: avatarClass });
-    }
-
-    // Animation functions (simplified)
-    function openAnimationSelector() { 
-      document.getElementById('animation-modal').style.display = 'flex'; 
-    }
-    function closeAnimationSelector() { 
-      document.getElementById('animation-modal').style.display = 'none'; 
-    }
-
-    // ======================== INITIALIZATION ========================
-    window.onload = () => {
-      const autoLogged = checkAutoLogin();
-      if (!autoLogged) {
-        joinModal.style.display = 'flex';
-        sendContainer.style.display = 'none';
-      } else {
-        sendContainer.style.display = 'flex';
-      }
-      getNewJoke();
-    };
-  </script>
+    t++;animRafs.thunder3d=requestAnimationFrame(f);};f();
+}
+function bgSunrise(){
+  const ctx=rc('sunrise-canvas');if(!ctx)return;
+  const W=ctx.canvas.width,H=ctx.canvas.height;let t=0;
+  const f=()=>{
+    const progress=(Math.sin(t*.005)+1)/2;
+    const sky=ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,`hsl(${220+progress*40},60%,${10+progress*20}%)`);
+    sky.addColorStop(.5,`hsl(${10+progress*20},${60+progress*30}%,${20+progress*30}%)`);
+    sky.addColorStop(1,`hsl(35,${50+progress*40}%,${15+progress*20}%)`);
+    ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+    // Sun
+    const sy=H*.45-(progress*H*.3);const sr=40+progress*20;
+    const sunGlow=ctx.createRadialGradient(W/2,sy,0,W/2,sy,sr*3);
+    sunGlow.addColorStop(0,`rgba(255,${150+progress*105},0,${.3+progress*.4})`);
+    sunGlow.addColorStop(1,'transparent');
+    ctx.fillStyle=sunGlow;ctx.beginPath();ctx.arc(W/2,sy,sr*3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=`rgb(255,${150+progress*105},${progress*50})`;ctx.beginPath();ctx.arc(W/2,sy,sr,0,Math.PI*2);ctx.fill();
+    // Horizon glow
+    const hg=ctx.createLinearGradient(0,H*.6,0,H*.75);hg.addColorStop(0,`rgba(255,${100+progress*100},0,${.15+progress*.2})`);hg.addColorStop(1,'transparent');
+    ctx.fillStyle=hg;ctx.fillRect(0,H*.55,W,H*.2);
+    t++;animRafs.sunrise=requestAnimationFrame(f);};f();
+}
+ 
+// ===================== INIT =====================
+window.onload=()=>{
+  const savedBg=localStorage.getItem('chHookBg')||'default';
+  const joined=load();
+  if(joined){
+    let done=false;
+    socket.emit('join',user,(res)=>{if(done)return;done=true;if(res&&!res.success){alert(res.message||'Username taken!');localStorage.removeItem('chv3');document.getElementById('join-modal').style.display='flex';document.getElementById('send-container').style.display='none';}else{document.getElementById('join-modal').style.display='none';document.getElementById('send-container').style.display='flex';sysMsg(`🔁 Welcome back, ${user.name}! 👋`);socket.emit('new-user-joined',user);}});
+    setTimeout(()=>{if(!done){done=true;document.getElementById('join-modal').style.display='none';document.getElementById('send-container').style.display='flex';sysMsg(`🔁 Welcome back, ${user.name}! 👋`);}},2500);
+    refreshTopAvatar();
+  } else {
+    document.getElementById('join-modal').style.display='flex';
+    document.getElementById('send-container').style.display='none';
+  }
+  newJoke();
+  setTimeout(()=>switchBg(savedBg),100);
+};
+</script>
 </body>
 </html>

@@ -11,11 +11,12 @@ const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.APP_URL 
-      : 'http://localhost:3000',
+      ? process.env.APP_URL || 'https://chat-hook-1.onrender.com'
+      : '*',
     methods: ['GET', 'POST'],
     credentials: true
-  }
+  },
+  transports: ['websocket', 'polling']
 });
 
 const PORT = process.env.PORT || 3000;
@@ -23,8 +24,8 @@ const PORT = process.env.PORT || 3000;
 // Enable CORS
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.APP_URL 
-    : 'http://localhost:3000',
+    ? process.env.APP_URL || 'https://chat-hook-1.onrender.com'
+    : '*',
   credentials: true
 }));
 
@@ -41,7 +42,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development'
+    env: process.env.NODE_ENV || 'development',
+    uptime: process.uptime()
   });
 });
 
@@ -49,125 +51,193 @@ app.get('/api/health', (req, res) => {
 let onlineUsers = [];
 let messageHistory = [];
 
+// Helper to remove user by socket id
+const removeUser = (socketId) => {
+  const index = onlineUsers.findIndex(u => u.id === socketId);
+  if (index !== -1) {
+    const removed = onlineUsers.splice(index, 1)[0];
+    return removed;
+  }
+  return null;
+};
+
+// Helper to find user by socket id
+const findUser = (socketId) => {
+  return onlineUsers.find(u => u.id === socketId);
+};
+
 // Socket.io connection handling
 io.on('connection', (socket) => {
   console.log('New user connected:', socket.id);
 
   // User joins
-  socket.on('user-joined', (userData) => {
-    const newUser = {
-      ...userData,
-      id: socket.id,
-      socketId: socket.id,
-      connectedAt: new Date().toISOString()
-    };
-    
-    // Remove existing user with same ID if any
-    onlineUsers = onlineUsers.filter(u => u.id !== socket.id);
-    onlineUsers.push(newUser);
-    
-    // Send message history to new user
-    socket.emit('message-history', messageHistory);
-    
-    // Broadcast to all users
-    io.emit('online-users', onlineUsers);
-    
-    // Welcome message
-    const welcomeMsg = {
-      text: `👋 Welcome ${newUser.name} to Chat Hook!`,
-      user: {
-        id: 'system',
-        name: 'System',
-        country: 'Chat Hook'
-      },
-      timestamp: new Date().toISOString()
-    };
-    socket.emit('message', welcomeMsg);
-    
-    // Broadcast join message
-    const joinMsg = {
-      text: `🎉 ${newUser.name} joined the chat!`,
-      user: {
-        id: 'system',
-        name: 'System',
-        country: 'Chat Hook'
-      },
-      timestamp: new Date().toISOString()
-    };
-    socket.broadcast.emit('message', joinMsg);
-  });
-
-  // User updated (profile change)
-  socket.on('user-updated', (updatedUser) => {
-    const index = onlineUsers.findIndex(u => u.id === socket.id);
-    if (index !== -1) {
-      onlineUsers[index] = { ...updatedUser, id: socket.id };
-      io.emit('online-users', onlineUsers);
+  socket.on('new-user-joined', (userData) => {
+    // Check if user already exists with this socket id
+    const existingUser = findUser(socket.id);
+    if (existingUser) {
+      // Update existing user data
+      existingUser.name = userData.name;
+      existingUser.gender = userData.gender;
+      existingUser.region = userData.region;
+      existingUser.avatarStyle = userData.avatarStyle || 'avatar-gradient';
+      existingUser.connectedAt = new Date().toISOString();
+      console.log('User updated:', existingUser.name);
+    } else {
+      // Add new user
+      const newUser = {
+        id: socket.id,
+        name: userData.name || 'Anonymous',
+        gender: userData.gender || 'Not specified',
+        region: userData.region || 'Unknown',
+        avatarStyle: userData.avatarStyle || 'avatar-gradient',
+        connectedAt: new Date().toISOString()
+      };
+      onlineUsers.push(newUser);
+      console.log('New user joined:', newUser.name);
       
-      // Broadcast update message
-      const updateMsg = {
-        text: `✏️ ${updatedUser.name} updated their profile`,
+      // Broadcast join message
+      const joinMsg = {
+        text: `🎉 ${newUser.name} joined the chat!`,
         user: {
           id: 'system',
           name: 'System',
-          country: 'Chat Hook'
+          gender: 'System',
+          region: 'Chat Hook',
+          avatarStyle: 'avatar-gradient'
         },
         timestamp: new Date().toISOString()
       };
-      io.emit('message', updateMsg);
+      socket.broadcast.emit('receive', { 
+        message: joinMsg.text, 
+        user: joinMsg.user 
+      });
     }
+    
+    // Send message history to the new user (last 50 messages)
+    const recentHistory = messageHistory.slice(-50);
+    recentHistory.forEach(msg => {
+      socket.emit('receive', { message: msg.text, user: msg.user });
+    });
+    
+    // Send welcome message
+    const welcomeMsg = {
+      text: `👋 Welcome ${userData.name || 'User'} to Chat Hook!`,
+      user: {
+        id: 'system',
+        name: 'System',
+        gender: 'System',
+        region: 'Chat Hook',
+        avatarStyle: 'avatar-gradient'
+      },
+      timestamp: new Date().toISOString()
+    };
+    socket.emit('receive', { 
+      message: welcomeMsg.text, 
+      user: welcomeMsg.user 
+    });
+    
+    // Broadcast updated online users list
+    io.emit('online-users', onlineUsers);
   });
 
   // Send message
-  socket.on('send-message', (messageData) => {
-    const message = {
-      ...messageData,
-      id: Date.now() + Math.random().toString(36)
+  socket.on('send', (data) => {
+    if (!data || !data.message) return;
+    
+    const messageData = {
+      text: data.message,
+      user: {
+        id: socket.id,
+        name: data.user?.name || 'Anonymous',
+        gender: data.user?.gender || 'Not specified',
+        region: data.user?.region || 'Unknown',
+        avatarStyle: data.user?.avatarStyle || 'avatar-gradient'
+      },
+      timestamp: new Date().toISOString()
     };
     
     // Store in history (limit to 100 messages)
-    messageHistory.push(message);
+    messageHistory.push(messageData);
     if (messageHistory.length > 100) {
       messageHistory.shift();
     }
     
-    // Broadcast to all users
-    io.emit('message', message);
+    // Broadcast to all users including sender
+    io.emit('receive', { 
+      message: messageData.text, 
+      user: messageData.user 
+    });
+    console.log(`Message from ${messageData.user.name}: ${messageData.text.substring(0, 50)}`);
   });
 
-  // Get user by ID
-  socket.on('get-user', (userId, callback) => {
-    const user = onlineUsers.find(u => u.id === userId);
-    callback(user || null);
+  // Name change event
+  socket.on('name-changed', (data) => {
+    const user = findUser(socket.id);
+    if (user) {
+      user.name = data.newName;
+      console.log(`User renamed: ${data.oldName} -> ${data.newName}`);
+      
+      // Broadcast name change message
+      const nameChangeMsg = {
+        text: `✏️ ${data.oldName} changed their name to ${data.newName}`,
+        user: {
+          id: 'system',
+          name: 'System',
+          gender: 'System',
+          region: 'Chat Hook',
+          avatarStyle: 'avatar-gradient'
+        },
+        timestamp: new Date().toISOString()
+      };
+      io.emit('receive', { 
+        message: nameChangeMsg.text, 
+        user: nameChangeMsg.user 
+      });
+      io.emit('online-users', onlineUsers);
+    }
+  });
+
+  // Avatar change event
+  socket.on('avatar-changed', (data) => {
+    const user = findUser(socket.id);
+    if (user && data.avatarStyle) {
+      user.avatarStyle = data.avatarStyle;
+      console.log(`Avatar changed for ${user.name}: ${data.avatarStyle}`);
+      io.emit('online-users', onlineUsers);
+    }
   });
 
   // Disconnect
   socket.on('disconnect', () => {
-    const user = onlineUsers.find(u => u.id === socket.id);
-    onlineUsers = onlineUsers.filter(u => u.id !== socket.id);
-    
-    io.emit('online-users', onlineUsers);
+    const user = removeUser(socket.id);
     
     if (user) {
+      console.log('User disconnected:', user.name);
       const leaveMsg = {
         text: `👋 ${user.name} left the chat`,
         user: {
           id: 'system',
           name: 'System',
-          country: 'Chat Hook'
+          gender: 'System',
+          region: 'Chat Hook',
+          avatarStyle: 'avatar-gradient'
         },
         timestamp: new Date().toISOString()
       };
-      io.emit('message', leaveMsg);
+      io.emit('receive', { 
+        message: leaveMsg.text, 
+        user: leaveMsg.user 
+      });
+      io.emit('online-users', onlineUsers);
+    } else {
+      console.log('Socket disconnected (no user found):', socket.id);
     }
-    
-    console.log('User disconnected:', socket.id);
   });
 });
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Chat Hook Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 URL: http://localhost:${PORT}`);
 });
@@ -175,6 +245,14 @@ server.listen(PORT, () => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received. Closing server...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Closing server...');
   server.close(() => {
     console.log('Server closed');
     process.exit(0);

@@ -7,222 +7,443 @@ const path = require("path");
 const app = express();
 const server = http.createServer(app);
 
-// ============================================
-// ✅ MIDDLEWARE
-// ============================================
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  credentials: true
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(cors({ origin: "*", methods: ["GET", "POST"], credentials: true }));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// ============================================
-// ✅ SERVE FRONTEND FILES (✅ YAHI LINE HAI!)
-// ============================================
 const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
 
-// ============================================
-// ✅ SOCKET.IO SETUP (RENDER COMPATIBLE)
-// ============================================
 const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  },
-  transports: ['websocket', 'polling'],
+  cors: { origin: "*", methods: ["GET", "POST"] },
+  transports: ["websocket", "polling"],
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  maxHttpBufferSize: 50 * 1024 * 1024, // 50MB for media
 });
 
-// ============================================
-// ✅ HEALTH CHECK (RENDER REQUIRED)
-// ============================================
 app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    usersOnline: Object.keys(users).length
+    usersOnline: Object.keys(usersByName).length,
   });
 });
 
 // ============================================
-// ✅ USER STORAGE
+// USER STORAGE
+// users keyed by socket.id (current connection)
+// usersByName keyed by username (persistent data)
 // ============================================
-const users = {};
+const users = {}; // socket.id -> user info
+const usersByName = {}; // name -> full persistent user data
 
 // ============================================
-// ✅ SOCKET.IO LOGIC - COMPLETE FEATURES
+// SOCKET.IO LOGIC
 // ============================================
 io.on("connection", (socket) => {
-  console.log("✅ User connected:", socket.id);
-  
-  // Send connection confirmation
+  console.log("✅ Socket connected:", socket.id);
+
   socket.emit("connection-established", {
     message: "Connected to Chat Hook server",
-    socketId: socket.id
+    socketId: socket.id,
   });
 
   // ============================================
-  // ✅ 1. USER JOINS CHAT (WITH PROFILE)
+  // JOIN — used for both fresh join and page-reload rejoin
   // ============================================
-  socket.on("new-user-joined", (userData) => {
-    console.log("👤 New user joining:", userData);
-    
-    // Validate user data
+  socket.on("join", (userData, callback) => {
     if (!userData || !userData.name || !userData.gender || !userData.region) {
-      socket.emit("join-error", { message: "Please provide all details" });
+      if (callback) callback({ success: false, message: "Please provide all details" });
       return;
     }
-    
-    // Store user info
-    users[socket.id] = {
+
+    const name = userData.name;
+
+    // Check if name is taken by a DIFFERENT (still live) socket
+    const existingSocketId = Object.keys(users).find(
+      (sid) => users[sid] && users[sid].name === name && sid !== socket.id
+    );
+    if (existingSocketId) {
+      if (callback) callback({ success: false, message: "Username already taken!" });
+      return;
+    }
+
+    const isRejoin = !!usersByName[name];
+
+    // Merge persisted data with incoming data (incoming wins for profile fields)
+    const persisted = usersByName[name] || {};
+    const fullUser = {
       id: socket.id,
-      name: userData.name,
+      name,
       gender: userData.gender,
       region: userData.region,
-      profilePicture: userData.profilePicture || "",
-      joinTime: new Date()
+      avatarStyle: userData.avatarStyle || persisted.avatarStyle || "av-gradient",
+      picEffect: userData.picEffect || persisted.picEffect || "pfx-none",
+      photoUrl: userData.photoUrl || persisted.photoUrl || "",
+      bio: userData.bio || persisted.bio || "",
+      youtube: userData.youtube || persisted.youtube || "",
+      instagram: userData.instagram || persisted.instagram || "",
+      mood: userData.mood || persisted.mood || "",
+      followers: userData.followers || persisted.followers || [],
+      following: userData.following || persisted.following || [],
+      totalLikes: userData.totalLikes || persisted.totalLikes || 0,
+      nameChangedOnce: userData.nameChangedOnce || persisted.nameChangedOnce || false,
+      nameChangeTs: userData.nameChangeTs || persisted.nameChangeTs || 0,
+      joinTime: persisted.joinTime || new Date(),
     };
-    
-    console.log(`✅ ${userData.name} joined the chat`);
-    
-    // Notify the joining user
-    socket.emit("user-joined-self", users[socket.id]);
-    
-    // Notify all other users
-    socket.broadcast.emit("user-joined", users[socket.id]);
-    
-    // Update online count for everyone
+
+    users[socket.id] = fullUser;
+    usersByName[name] = fullUser;
+
+    if (callback) callback({ success: true, user: fullUser });
+
+    // Announce to others
+    if (isRejoin) {
+      socket.broadcast.emit("user-rejoined", fullUser);
+    } else {
+      socket.broadcast.emit("user-joined", fullUser);
+    }
+
+    // Send current online users list to the joining user
+    socket.emit("online-users", Object.values(users));
+
+    console.log(`${isRejoin ? "🔁 Rejoin" : "✅ Join"}: ${name}`);
+
     io.emit("online-users-update", {
       count: Object.keys(users).length,
-      users: Object.values(users).map(u => u.name)
+      users: Object.values(users).map((u) => ({ name: u.name, region: u.region })),
     });
   });
 
   // ============================================
-  // ✅ 2. SEND MESSAGE (WITH USER INFO)
+  // NEW-USER-JOINED (legacy broadcast from client after join)
+  // ============================================
+  socket.on("new-user-joined", (userData) => {
+    // Just update stored data with latest profile info
+    if (userData && userData.name && users[socket.id]) {
+      const u = users[socket.id];
+      u.photoUrl = userData.photoUrl || u.photoUrl;
+      u.avatarStyle = userData.avatarStyle || u.avatarStyle;
+      u.picEffect = userData.picEffect || u.picEffect;
+      u.bio = userData.bio || u.bio;
+      u.mood = userData.mood || u.mood;
+      u.followers = userData.followers || u.followers;
+      u.following = userData.following || u.following;
+      u.totalLikes = userData.totalLikes || u.totalLikes;
+      if (usersByName[u.name]) Object.assign(usersByName[u.name], u);
+    }
+  });
+
+  // ============================================
+  // SEND MESSAGE (with media support)
   // ============================================
   socket.on("send", (messageData) => {
     const sender = users[socket.id];
-    
     if (!sender) {
       socket.emit("send-error", { message: "Join chat first!" });
       return;
     }
-    
-    if (!messageData || !messageData.message || messageData.message.trim() === "") {
-      socket.emit("send-error", { message: "Message cannot be empty" });
-      return;
+    if (!messageData) return;
+    if (!messageData.message?.trim() && !messageData.mediaData) return;
+
+    // Update sender's latest profile data
+    if (messageData.user) {
+      const u = messageData.user;
+      sender.avatarStyle = u.avatarStyle || sender.avatarStyle;
+      sender.picEffect = u.picEffect || sender.picEffect;
+      sender.photoUrl = u.photoUrl || sender.photoUrl;
+      sender.bio = u.bio || sender.bio;
+      sender.mood = u.mood || sender.mood;
+      sender.followers = u.followers || sender.followers;
+      sender.following = u.following || sender.following;
+      sender.totalLikes = u.totalLikes || sender.totalLikes;
+      if (usersByName[sender.name]) Object.assign(usersByName[sender.name], sender);
     }
-    
-    console.log(`📨 Message from ${sender.name}: ${messageData.message}`);
-    
-    // Prepare message with user info
+
     const fullMessage = {
-      message: messageData.message,
+      message: messageData.message || "",
       user: {
         name: sender.name,
         gender: sender.gender,
         region: sender.region,
-        profilePicture: sender.profilePicture
+        avatarStyle: sender.avatarStyle,
+        picEffect: sender.picEffect,
+        photoUrl: sender.photoUrl,   // ← profile photo included
+        bio: sender.bio,
+        mood: sender.mood,
+        followers: sender.followers,
+        following: sender.following,
+        totalLikes: sender.totalLikes,
       },
-      timestamp: messageData.timestamp || new Date().toLocaleTimeString(),
-      messageId: Date.now() + "-" + socket.id
+      mediaData: messageData.mediaData || null,   // ← media included
+      mediaType: messageData.mediaType || null,
+      timestamp: new Date().toLocaleTimeString(),
+      messageId: Date.now() + "-" + socket.id,
     };
-    
-    // Send to all users except sender
+
+    // Broadcast to EVERYONE except sender
     socket.broadcast.emit("receive", fullMessage);
-    
-    // Confirm to sender
+
     socket.emit("message-sent", {
       message: messageData.message,
-      timestamp: fullMessage.timestamp
+      timestamp: fullMessage.timestamp,
+    });
+
+    console.log(`📨 ${sender.name}: ${messageData.message || "[media]"}`);
+  });
+
+  // ============================================
+  // PROFILE UPDATE BROADCAST
+  // ============================================
+  socket.on("profile-updated", (userData) => {
+    const user = users[socket.id];
+    if (!user || !userData) return;
+
+    // Update server store
+    Object.assign(user, {
+      avatarStyle: userData.avatarStyle || user.avatarStyle,
+      picEffect: userData.picEffect || user.picEffect,
+      photoUrl: userData.photoUrl !== undefined ? userData.photoUrl : user.photoUrl,
+      bio: userData.bio !== undefined ? userData.bio : user.bio,
+      mood: userData.mood !== undefined ? userData.mood : user.mood,
+      youtube: userData.youtube !== undefined ? userData.youtube : user.youtube,
+      instagram: userData.instagram !== undefined ? userData.instagram : user.instagram,
+    });
+    if (usersByName[user.name]) Object.assign(usersByName[user.name], user);
+
+    // Broadcast updated profile to all others
+    socket.broadcast.emit("user-profile-updated", {
+      name: user.name,
+      avatarStyle: user.avatarStyle,
+      picEffect: user.picEffect,
+      photoUrl: user.photoUrl,
+      bio: user.bio,
+      mood: user.mood,
     });
   });
 
   // ============================================
-  // ✅ 3. TYPING INDICATORS
+  // FOLLOW REQUEST
+  // ============================================
+  socket.on("follow-req", (data) => {
+    // data: { from, to, fromUser }
+    if (!data || !data.from || !data.to) return;
+
+    const fromUser = users[socket.id];
+    if (!fromUser) return;
+
+    // Update server-side following list for sender
+    if (!fromUser.following.includes(data.to)) {
+      fromUser.following.push(data.to);
+      if (usersByName[fromUser.name]) usersByName[fromUser.name].following = fromUser.following;
+    }
+
+    // Update server-side followers list for target
+    if (usersByName[data.to] && !usersByName[data.to].followers.includes(data.from)) {
+      usersByName[data.to].followers.push(data.from);
+      // Update in active users map too
+      const targetSocket = Object.keys(users).find(sid => users[sid].name === data.to);
+      if (targetSocket) users[targetSocket].followers = usersByName[data.to].followers;
+    }
+
+    // Find target socket and send notification
+    const targetSocketId = Object.keys(users).find((sid) => users[sid].name === data.to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("follow-req", {
+        from: data.from,
+        to: data.to,
+        fromUser: {
+          name: fromUser.name,
+          avatarStyle: fromUser.avatarStyle,
+          picEffect: fromUser.picEffect,
+          photoUrl: fromUser.photoUrl,
+        },
+        // Send updated counts back to target
+        newFollowerCount: (usersByName[data.to]?.followers || []).length,
+      });
+    }
+
+    // Also send confirmation back to sender with updated following count
+    socket.emit("follow-confirmed", {
+      following: data.to,
+      newFollowingCount: fromUser.following.length,
+    });
+  });
+
+  // ============================================
+  // UNFOLLOW
+  // ============================================
+  socket.on("unfollow-req", (data) => {
+    if (!data || !data.from || !data.to) return;
+
+    const fromUser = users[socket.id];
+    if (!fromUser) return;
+
+    fromUser.following = fromUser.following.filter((n) => n !== data.to);
+    if (usersByName[fromUser.name]) usersByName[fromUser.name].following = fromUser.following;
+
+    if (usersByName[data.to]) {
+      usersByName[data.to].followers = usersByName[data.to].followers.filter((n) => n !== data.from);
+      const targetSocket = Object.keys(users).find(sid => users[sid].name === data.to);
+      if (targetSocket) users[targetSocket].followers = usersByName[data.to].followers;
+
+      const targetSocketId = Object.keys(users).find((sid) => users[sid].name === data.to);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("unfollow-notif", {
+          from: data.from,
+          newFollowerCount: usersByName[data.to].followers.length,
+        });
+      }
+    }
+
+    socket.emit("unfollow-confirmed", {
+      unfollowed: data.to,
+      newFollowingCount: fromUser.following.length,
+    });
+  });
+
+  // ============================================
+  // LIKE MESSAGE
+  // ============================================
+  socket.on("like-msg", (data) => {
+    if (!data || !data.from || !data.to) return;
+
+    // Update totalLikes for target user
+    if (usersByName[data.to]) {
+      usersByName[data.to].totalLikes = (usersByName[data.to].totalLikes || 0) + 1;
+      const targetSocket = Object.keys(users).find(sid => users[sid].name === data.to);
+      if (targetSocket) users[targetSocket].totalLikes = usersByName[data.to].totalLikes;
+    }
+
+    const targetSocketId = Object.keys(users).find((sid) => users[sid].name === data.to);
+    if (targetSocketId) {
+      io.to(targetSocketId).emit("like-msg", {
+        from: data.from,
+        to: data.to,
+        fromUser: data.fromUser,
+        newTotalLikes: usersByName[data.to]?.totalLikes || 0,
+      });
+    }
+  });
+
+  // ============================================
+  // NAME CHANGE
+  // ============================================
+  socket.on("name-changed", (data) => {
+    const user = users[socket.id];
+    if (!user || !data.newName) return;
+
+    const oldName = user.name;
+    // Move persistent data
+    usersByName[data.newName] = { ...usersByName[oldName], name: data.newName };
+    delete usersByName[oldName];
+
+    user.name = data.newName;
+
+    socket.broadcast.emit("name-changed-broadcast", {
+      oldName,
+      newName: data.newName,
+      user,
+    });
+  });
+
+  // ============================================
+  // MOOD UPDATE
+  // ============================================
+  socket.on("mood-update", (data) => {
+    const user = users[socket.id];
+    if (!user) return;
+    user.mood = data.mood || "";
+    if (usersByName[user.name]) usersByName[user.name].mood = user.mood;
+    socket.broadcast.emit("mood-updated", { name: user.name, mood: user.mood });
+  });
+
+  // ============================================
+  // TYPING
   // ============================================
   socket.on("typing-start", () => {
     const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit("user-typing", user.name);
-    }
+    if (user) socket.broadcast.emit("user-typing", user.name);
   });
-
   socket.on("typing-stop", () => {
     const user = users[socket.id];
-    if (user) {
-      socket.broadcast.emit("user-stop-typing", user.name);
+    if (user) socket.broadcast.emit("user-stop-typing", user.name);
+  });
+
+  // ============================================
+  // GET USER PROFILE (for viewing other profiles)
+  // ============================================
+  socket.on("get-user-profile", (name, callback) => {
+    const userData = usersByName[name];
+    if (userData && callback) {
+      callback({ success: true, user: userData });
+    } else if (callback) {
+      callback({ success: false });
     }
   });
 
   // ============================================
-  // ✅ 4. USER DISCONNECTS
+  // DISCONNECT
   // ============================================
-  socket.on("disconnect", () => {
+  socket.on("disconnect", (reason) => {
     const user = users[socket.id];
-    
-    if (user) {
-      console.log(`👋 ${user.name} disconnected`);
-      
-      // Notify all users
-      io.emit("left", {
-        name: user.name,
-        gender: user.gender,
-        region: user.region,
-        profilePicture: user.profilePicture
-      });
-      
-      // Remove user
-      delete users[socket.id];
-      
-      // Update online count
-      io.emit("online-users-update", {
-        count: Object.keys(users).length,
-        users: Object.values(users).map(u => u.name)
-      });
-    } else {
-      console.log("ℹ️ Anonymous user disconnected:", socket.id);
+    if (!user) {
+      console.log("ℹ️ Anonymous disconnected:", socket.id);
+      return;
     }
+
+    console.log(`👋 ${user.name} disconnected (${reason})`);
+
+    // Grace period for page reload / reconnect
+    setTimeout(() => {
+      const stillConnected = Object.keys(users).some(
+        (sid) => users[sid].name === user.name && sid !== socket.id
+      );
+
+      delete users[socket.id];
+
+      if (!stillConnected) {
+        io.emit("left", {
+          name: user.name,
+          gender: user.gender,
+          region: user.region,
+        });
+        io.emit("online-users-update", {
+          count: Object.keys(users).length,
+          users: Object.values(users).map((u) => ({ name: u.name })),
+        });
+      }
+    }, 3000);
   });
 
-  // ============================================
-  // ✅ 5. ERROR HANDLING
-  // ============================================
   socket.on("error", (error) => {
     console.error("Socket error:", error);
   });
 });
 
 // ============================================
-// ✅ CONNECTED USERS API
+// REST API
 // ============================================
 app.get("/connected-users", (req, res) => {
   res.json({
     success: true,
     totalUsers: Object.keys(users).length,
-    users: Object.values(users).map(user => ({
-      name: user.name,
-      gender: user.gender,
-      region: user.region,
-      onlineSince: user.joinTime
-    }))
+    users: Object.values(users).map((u) => ({
+      name: u.name,
+      gender: u.gender,
+      region: u.region,
+      onlineSince: u.joinTime,
+    })),
   });
 });
 
-// ============================================
-// ✅ SERVE FRONTEND FOR ALL ROUTES
-// ============================================
 app.get("*", (req, res) => {
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // ============================================
-// ✅ START SERVER (RENDER COMPATIBLE)
+// START
 // ============================================
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, "0.0.0.0", () => {
@@ -231,11 +452,5 @@ server.listen(PORT, "0.0.0.0", () => {
   console.log("=".repeat(50));
   console.log(`📡 Port: ${PORT}`);
   console.log(`🌐 URL: https://chat-hook-1.onrender.com`);
-  console.log(`📁 Frontend: ${frontendPath}`);
-  console.log("=".repeat(50)); 
-  console.log("✅ Endpoints:");
-  console.log("   /              - Chat application");
-  console.log("   /health        - Health check");
-  console.log("   /connected-users - Online users");
   console.log("=".repeat(50));
 });

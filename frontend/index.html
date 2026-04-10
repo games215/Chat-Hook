@@ -713,23 +713,50 @@ function load() {
 }
 
 // ===== USERNAME SYSTEM =====
-let takenNames = new Set();
+let usernameCheckTimer = null;
+let lastCheckedName = '';
+let lastCheckResult = true;
+
 function checkUsername(val) {
-  const nm = val.trim().toLowerCase();
+  const nm = val.trim();
   const taken = document.getElementById('nameTakenMsg');
   const suggest = document.getElementById('usernameSuggest');
-  if (!nm || nm.length < 2) { taken.style.display = 'none'; suggest.innerHTML = ''; return true; }
-  if (takenNames.has(nm)) {
-    taken.style.display = 'block';
-    const suggestions = genSuggestions(nm);
-    suggest.innerHTML = 'Try: ' + suggestions.map(s => `<span onclick="document.getElementById('jn').value='${s}';checkUsername('${s}')">${s}</span>`).join(' ');
-    return false;
+  if (!nm || nm.length < 2) {
+    taken.style.display = 'none';
+    suggest.innerHTML = '';
+    lastCheckResult = true;
+    lastCheckedName = '';
+    return;
   }
-  taken.style.display = 'none'; suggest.innerHTML = ''; return true;
+  suggest.innerHTML = '<span style="color:var(--text-muted);font-size:11px;">⏳ Checking...</span>';
+  taken.style.display = 'none';
+  clearTimeout(usernameCheckTimer);
+  usernameCheckTimer = setTimeout(() => {
+    socket.emit('check-username', nm, res => {
+      lastCheckedName = nm.toLowerCase();
+      if (res && res.available) {
+        taken.style.display = 'none';
+        suggest.innerHTML = '<span style="color:var(--accent);font-size:11px;">✅ Username available!</span>';
+        lastCheckResult = true;
+      } else {
+        taken.style.display = 'block';
+        suggest.innerHTML = 'Try: ' + genSuggestions(nm).map(s =>
+          `<span onclick="document.getElementById('jn').value='${s}';checkUsername('${s}')">${s}</span>`
+        ).join(' ');
+        lastCheckResult = false;
+      }
+    });
+  }, 400);
 }
+
+function isUsernameReady() {
+  const val = document.getElementById('jn').value.trim().toLowerCase();
+  return val.length >= 2 && val === lastCheckedName && lastCheckResult;
+}
+
 function genSuggestions(base) {
-  const sfx = ['_pro','_real','_xo','101','_vip','007','_official','_live','_g','_hub'];
-  return sfx.slice(0,5).map(s => base.replace(/[^a-z0-9]/gi,'') + s);
+  const clean = base.replace(/[^a-z0-9]/gi, '');
+  return ['_pro','_real','_xo','101','_vip'].map(s => clean + s);
 }
 
 // ===== APPLY AVATAR =====
@@ -945,12 +972,20 @@ document.getElementById('join-form').addEventListener('submit', e => {
   const gender = document.getElementById('jg').value;
   const region = document.getElementById('jr').value;
   if (!name || !gender || !region) { showToast('Please fill all fields!', 'rgba(255,100,100,.9)'); return; }
-  if (!checkUsername(name)) { showToast('Username taken! Choose another.', 'rgba(255,100,100,.9)'); return; }
+
+  const btn = document.getElementById('joinBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Joining...';
 
   socket.emit('join', { name, gender, region, ...U }, res => {
+    btn.disabled = false;
+    btn.textContent = '⚡ JOIN CHAT HOOK';
     if (res && !res.success) {
-      takenNames.add(name.toLowerCase());
-      checkUsername(name);
+      document.getElementById('nameTakenMsg').style.display = 'block';
+      document.getElementById('usernameSuggest').innerHTML = 'Try: ' + genSuggestions(name).map(s =>
+        `<span onclick="document.getElementById('jn').value='${s}';checkUsername('${s}')">${s}</span>`
+      ).join(' ');
+      lastCheckResult = false;
       showToast(res.message || 'Username taken!', 'rgba(255,100,100,.9)');
       return;
     }
@@ -966,7 +1001,6 @@ function attemptAutoRejoin() {
   if (!U.name || !U.gender || !U.region) return;
   socket.emit('join', U, res => {
     if (res && !res.success) {
-      // Name conflict — show join screen
       U = { name:'', gender:'', region:'', avatarStyle:'av-gradient', bio:'', youtube:'', instagram:'', photoUrl:'', picEffect:'pfx-none', mood:'', nameChangedOnce:false, nameChangeTs:0, followers:[], following:[], totalLikes:0 };
       document.getElementById('join-modal').style.display = 'flex';
       document.getElementById('send-container').style.display = 'none';
@@ -1179,19 +1213,24 @@ function changeName() {
     if (elapsed < wait) { const days = Math.ceil((wait - elapsed) / (24 * 60 * 60 * 1000)); showToast(`⏳ Wait ${days} more day(s)`, 'rgba(255,170,0,.9)'); return; }
   }
   const n = document.getElementById('nameInp').value.trim();
-  if (!n) return;
-  if (n.toLowerCase() !== U.name.toLowerCase() && takenNames.has(n.toLowerCase())) { showToast('Username taken!', 'rgba(255,100,100,.9)'); return; }
-  const old = U.name;
-  takenNames.delete(old.toLowerCase());
-  takenNames.add(n.toLowerCase());
-  U.name = n; U.nameChangedOnce = true; U.nameChangeTs = Date.now();
-  save(); refreshTop();
-  document.getElementById('pname').textContent = n;
-  document.getElementById('nameInp').value = '';
-  updateNameChangeInfo();
-  applyAv(document.getElementById('profileAvatar'), document.getElementById('profileAvatarWrap'));
-  showToast('✅ Name changed!');
-  socket.emit('name-changed', { oldName: old, newName: n, user: U });
+  if (!n || n.length < 2) { showToast('Enter a valid name!', 'rgba(255,100,100,.9)'); return; }
+  // Check with server first
+  socket.emit('check-username', n, res => {
+    if (!res || !res.available) {
+      if (n.toLowerCase() !== U.name.toLowerCase()) {
+        showToast('Username already taken!', 'rgba(255,100,100,.9)'); return;
+      }
+    }
+    const old = U.name;
+    U.name = n; U.nameChangedOnce = true; U.nameChangeTs = Date.now();
+    save(); refreshTop();
+    document.getElementById('pname').textContent = n;
+    document.getElementById('nameInp').value = '';
+    updateNameChangeInfo();
+    applyAv(document.getElementById('profileAvatar'), document.getElementById('profileAvatarWrap'));
+    showToast('✅ Name changed!');
+    socket.emit('name-changed', { oldName: old, newName: n, user: U });
+  });
 }
 
 function saveBio() {

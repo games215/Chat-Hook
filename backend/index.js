@@ -50,6 +50,26 @@ io.on("connection", (socket) => {
   });
 
   // ============================================
+  // CHECK USERNAME AVAILABILITY (real-time)
+  // ============================================
+  socket.on("check-username", (name, callback) => {
+    if (!name || name.trim().length < 2) {
+      if (callback) callback({ available: false, reason: "too_short" });
+      return;
+    }
+    const trimmed = name.trim().toLowerCase();
+    // Check active sockets
+    const takenBySocket = Object.values(users).some(
+      u => u.name.toLowerCase() === trimmed
+    );
+    if (takenBySocket) {
+      if (callback) callback({ available: false, reason: "taken" });
+      return;
+    }
+    if (callback) callback({ available: true });
+  });
+
+  // ============================================
   // JOIN — used for both fresh join and page-reload rejoin
   // ============================================
   socket.on("join", (userData, callback) => {

@@ -26,16 +26,14 @@ app.get("/health", (req, res) => {
   res.json({
     status: "healthy",
     timestamp: new Date().toISOString(),
-    usersOnline: Object.keys(usersByName).length,
+    usersOnline: Object.keys(users).length,
   });
 });
 
 // ============================================
 // USER STORAGE
-// users keyed by socket.id (current connection)
-// usersByName keyed by username (persistent data)
 // ============================================
-const users = {}; // socket.id -> user info
+const users = {};       // socket.id -> user info
 const usersByName = {}; // name -> full persistent user data
 
 // ============================================
@@ -50,27 +48,7 @@ io.on("connection", (socket) => {
   });
 
   // ============================================
-  // CHECK USERNAME AVAILABILITY (real-time)
-  // ============================================
-  socket.on("check-username", (name, callback) => {
-    if (!name || name.trim().length < 2) {
-      if (callback) callback({ available: false, reason: "too_short" });
-      return;
-    }
-    const trimmed = name.trim().toLowerCase();
-    // Check active sockets
-    const takenBySocket = Object.values(users).some(
-      u => u.name.toLowerCase() === trimmed
-    );
-    if (takenBySocket) {
-      if (callback) callback({ available: false, reason: "taken" });
-      return;
-    }
-    if (callback) callback({ available: true });
-  });
-
-  // ============================================
-  // JOIN — used for both fresh join and page-reload rejoin
+  // JOIN — NO username conflict checking, everyone joins freely
   // ============================================
   socket.on("join", (userData, callback) => {
     if (!userData || !userData.name || !userData.gender || !userData.region) {
@@ -78,17 +56,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const name = userData.name;
-
-    // Check if name is taken by a DIFFERENT (still live) socket
-    const existingSocketId = Object.keys(users).find(
-      (sid) => users[sid] && users[sid].name === name && sid !== socket.id
-    );
-    if (existingSocketId) {
-      if (callback) callback({ success: false, message: "Username already taken!" });
-      return;
-    }
-
+    const name = userData.name.trim();
     const isRejoin = !!usersByName[name];
 
     // Merge persisted data with incoming data (incoming wins for profile fields)
@@ -100,11 +68,11 @@ io.on("connection", (socket) => {
       region: userData.region,
       avatarStyle: userData.avatarStyle || persisted.avatarStyle || "av-gradient",
       picEffect: userData.picEffect || persisted.picEffect || "pfx-none",
-      photoUrl: userData.photoUrl || persisted.photoUrl || "",
-      bio: userData.bio || persisted.bio || "",
-      youtube: userData.youtube || persisted.youtube || "",
-      instagram: userData.instagram || persisted.instagram || "",
-      mood: userData.mood || persisted.mood || "",
+      photoUrl: userData.photoUrl !== undefined ? userData.photoUrl : (persisted.photoUrl || ""),
+      bio: userData.bio !== undefined ? userData.bio : (persisted.bio || ""),
+      youtube: userData.youtube !== undefined ? userData.youtube : (persisted.youtube || ""),
+      instagram: userData.instagram !== undefined ? userData.instagram : (persisted.instagram || ""),
+      mood: userData.mood !== undefined ? userData.mood : (persisted.mood || ""),
       followers: userData.followers || persisted.followers || [],
       following: userData.following || persisted.following || [],
       totalLikes: userData.totalLikes || persisted.totalLikes || 0,
@@ -137,21 +105,30 @@ io.on("connection", (socket) => {
   });
 
   // ============================================
-  // NEW-USER-JOINED (legacy broadcast from client after join)
+  // NEW-USER-JOINED (profile sync after join)
   // ============================================
   socket.on("new-user-joined", (userData) => {
-    // Just update stored data with latest profile info
     if (userData && userData.name && users[socket.id]) {
       const u = users[socket.id];
-      u.photoUrl = userData.photoUrl || u.photoUrl;
+      u.photoUrl = userData.photoUrl !== undefined ? userData.photoUrl : u.photoUrl;
       u.avatarStyle = userData.avatarStyle || u.avatarStyle;
       u.picEffect = userData.picEffect || u.picEffect;
-      u.bio = userData.bio || u.bio;
-      u.mood = userData.mood || u.mood;
+      u.bio = userData.bio !== undefined ? userData.bio : u.bio;
+      u.mood = userData.mood !== undefined ? userData.mood : u.mood;
       u.followers = userData.followers || u.followers;
       u.following = userData.following || u.following;
       u.totalLikes = userData.totalLikes || u.totalLikes;
       if (usersByName[u.name]) Object.assign(usersByName[u.name], u);
+
+      // Broadcast updated profile to ALL other users so they see latest photo/avatar
+      socket.broadcast.emit("user-profile-updated", {
+        name: u.name,
+        avatarStyle: u.avatarStyle,
+        picEffect: u.picEffect,
+        photoUrl: u.photoUrl,
+        bio: u.bio,
+        mood: u.mood,
+      });
     }
   });
 
@@ -172,9 +149,9 @@ io.on("connection", (socket) => {
       const u = messageData.user;
       sender.avatarStyle = u.avatarStyle || sender.avatarStyle;
       sender.picEffect = u.picEffect || sender.picEffect;
-      sender.photoUrl = u.photoUrl || sender.photoUrl;
-      sender.bio = u.bio || sender.bio;
-      sender.mood = u.mood || sender.mood;
+      sender.photoUrl = u.photoUrl !== undefined ? u.photoUrl : sender.photoUrl;
+      sender.bio = u.bio !== undefined ? u.bio : sender.bio;
+      sender.mood = u.mood !== undefined ? u.mood : sender.mood;
       sender.followers = u.followers || sender.followers;
       sender.following = u.following || sender.following;
       sender.totalLikes = u.totalLikes || sender.totalLikes;
@@ -189,20 +166,20 @@ io.on("connection", (socket) => {
         region: sender.region,
         avatarStyle: sender.avatarStyle,
         picEffect: sender.picEffect,
-        photoUrl: sender.photoUrl,   // ← profile photo included
+        photoUrl: sender.photoUrl,
         bio: sender.bio,
         mood: sender.mood,
         followers: sender.followers,
         following: sender.following,
         totalLikes: sender.totalLikes,
       },
-      mediaData: messageData.mediaData || null,   // ← media included
+      mediaData: messageData.mediaData || null,
       mediaType: messageData.mediaType || null,
       timestamp: new Date().toLocaleTimeString(),
       messageId: Date.now() + "-" + socket.id,
     };
 
-    // Broadcast to EVERYONE except sender
+    // Broadcast to everyone except sender
     socket.broadcast.emit("receive", fullMessage);
 
     socket.emit("message-sent", {
@@ -220,7 +197,6 @@ io.on("connection", (socket) => {
     const user = users[socket.id];
     if (!user || !userData) return;
 
-    // Update server store
     Object.assign(user, {
       avatarStyle: userData.avatarStyle || user.avatarStyle,
       picEffect: userData.picEffect || user.picEffect,
@@ -232,7 +208,6 @@ io.on("connection", (socket) => {
     });
     if (usersByName[user.name]) Object.assign(usersByName[user.name], user);
 
-    // Broadcast updated profile to all others
     socket.broadcast.emit("user-profile-updated", {
       name: user.name,
       avatarStyle: user.avatarStyle,
@@ -241,33 +216,30 @@ io.on("connection", (socket) => {
       bio: user.bio,
       mood: user.mood,
     });
+
+    console.log(`👤 Profile updated: ${user.name}`);
   });
 
   // ============================================
   // FOLLOW REQUEST
   // ============================================
   socket.on("follow-req", (data) => {
-    // data: { from, to, fromUser }
     if (!data || !data.from || !data.to) return;
 
     const fromUser = users[socket.id];
     if (!fromUser) return;
 
-    // Update server-side following list for sender
     if (!fromUser.following.includes(data.to)) {
       fromUser.following.push(data.to);
       if (usersByName[fromUser.name]) usersByName[fromUser.name].following = fromUser.following;
     }
 
-    // Update server-side followers list for target
     if (usersByName[data.to] && !usersByName[data.to].followers.includes(data.from)) {
       usersByName[data.to].followers.push(data.from);
-      // Update in active users map too
       const targetSocket = Object.keys(users).find(sid => users[sid].name === data.to);
       if (targetSocket) users[targetSocket].followers = usersByName[data.to].followers;
     }
 
-    // Find target socket and send notification
     const targetSocketId = Object.keys(users).find((sid) => users[sid].name === data.to);
     if (targetSocketId) {
       io.to(targetSocketId).emit("follow-req", {
@@ -279,12 +251,10 @@ io.on("connection", (socket) => {
           picEffect: fromUser.picEffect,
           photoUrl: fromUser.photoUrl,
         },
-        // Send updated counts back to target
         newFollowerCount: (usersByName[data.to]?.followers || []).length,
       });
     }
 
-    // Also send confirmation back to sender with updated following count
     socket.emit("follow-confirmed", {
       following: data.to,
       newFollowingCount: fromUser.following.length,
@@ -329,7 +299,6 @@ io.on("connection", (socket) => {
   socket.on("like-msg", (data) => {
     if (!data || !data.from || !data.to) return;
 
-    // Update totalLikes for target user
     if (usersByName[data.to]) {
       usersByName[data.to].totalLikes = (usersByName[data.to].totalLikes || 0) + 1;
       const targetSocket = Object.keys(users).find(sid => users[sid].name === data.to);
@@ -355,7 +324,6 @@ io.on("connection", (socket) => {
     if (!user || !data.newName) return;
 
     const oldName = user.name;
-    // Move persistent data
     usersByName[data.newName] = { ...usersByName[oldName], name: data.newName };
     delete usersByName[oldName];
 
@@ -392,7 +360,7 @@ io.on("connection", (socket) => {
   });
 
   // ============================================
-  // GET USER PROFILE (for viewing other profiles)
+  // GET USER PROFILE
   // ============================================
   socket.on("get-user-profile", (name, callback) => {
     const userData = usersByName[name];
@@ -415,7 +383,6 @@ io.on("connection", (socket) => {
 
     console.log(`👋 ${user.name} disconnected (${reason})`);
 
-    // Grace period for page reload / reconnect
     setTimeout(() => {
       const stillConnected = Object.keys(users).some(
         (sid) => users[sid].name === user.name && sid !== socket.id

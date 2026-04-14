@@ -267,19 +267,24 @@ textarea.inp{resize:vertical;min-height:65px;line-height:1.5;}
 .join-title{text-align:center;margin-bottom:8px;font-family:'Orbitron',sans-serif;}
 .join-title .j1{font-size:28px;font-weight:900;background:linear-gradient(90deg,var(--primary),var(--accent));-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:2px;}
 .join-title .j2{font-size:11px;color:var(--text-muted);letter-spacing:4px;text-transform:uppercase;margin-top:4px;}
-.join-card input,.join-card select{width:100%;padding:11px 14px;margin:6px 0;border:1px solid rgba(100,100,255,.28);border-radius:10px;background:rgba(15,15,35,.9);color:var(--text);font-size:14px;font-family:'Rajdhani',sans-serif;transition:border-color .3s;}
-.join-card input:focus,.join-card select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 12px rgba(0,204,255,.2);}
+.join-card input{width:100%;padding:11px 14px;margin:6px 0;border:1px solid rgba(100,100,255,.28);border-radius:10px;background:rgba(15,15,35,.9);color:var(--text);font-size:14px;font-family:'Rajdhani',sans-serif;transition:border-color .3s;}
+.join-card input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 12px rgba(0,204,255,.2);}
+.join-card select{width:100%;padding:11px 14px;margin:6px 0;border:1px solid rgba(100,100,255,.28);border-radius:10px;background:rgba(15,15,35,.9);color:var(--text);font-size:14px;font-family:'Rajdhani',sans-serif;transition:border-color .3s;}
+.join-card select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 12px rgba(0,204,255,.2);}
 .join-card button{width:100%;padding:13px;background:linear-gradient(135deg,var(--primary),var(--secondary));color:#fff;border:none;border-radius:10px;margin-top:14px;font-size:16px;font-weight:700;cursor:pointer;transition:all .3s;font-family:'Orbitron',sans-serif;letter-spacing:1px;}
 .join-card button:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,204,255,.4);}
-.username-suggest{margin-top:6px;font-size:11px;color:var(--text-muted);min-height:20px;}
-.username-suggest span{color:var(--primary);cursor:pointer;margin:0 3px;}
-.username-suggest span:hover{color:var(--accent);}
-.name-taken{color:var(--danger);font-size:11px;display:none;margin-top:3px;}
 
-/* ===== COMEDY ===== */
-.joke-display{font-size:15px;margin:13px 0;min-height:65px;background:rgba(20,20,42,.7);padding:13px;border-radius:10px;line-height:1.6;}
-.comedy-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
-.add-joke-section{margin-top:13px;padding-top:13px;border-top:1px solid rgba(100,100,255,.18);}
+/* ===== COUNTRY SEARCH ===== */
+.country-search-wrap{position:relative;margin:6px 0;}
+.country-search-inp{width:100%;padding:11px 14px;border:1px solid rgba(100,100,255,.28);border-radius:10px;background:rgba(15,15,35,.9);color:var(--text);font-size:14px;font-family:'Rajdhani',sans-serif;transition:border-color .3s;outline:none;}
+.country-search-inp:focus{border-color:var(--primary);box-shadow:0 0 12px rgba(0,204,255,.2);}
+.country-dropdown{position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:rgba(10,10,28,.98);border:1px solid rgba(0,204,255,.25);border-top:none;border-radius:0 0 10px 10px;z-index:9999;display:none;}
+.country-dropdown.open{display:block;}
+.country-option{padding:9px 14px;font-size:13px;font-family:'Rajdhani',sans-serif;color:var(--text);cursor:pointer;transition:background .15s;}
+.country-option:hover,.country-option.highlighted{background:rgba(0,204,255,.15);color:var(--primary);}
+.country-option.selected-opt{background:rgba(0,255,136,.1);color:var(--accent);}
+.country-selected-display{padding:11px 14px;border:1px solid rgba(0,204,255,.4);border-radius:10px;background:rgba(0,204,255,.07);color:var(--accent);font-size:13px;font-family:'Rajdhani',sans-serif;margin-top:4px;display:none;}
+::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:rgba(20,20,40,.4);}::-webkit-scrollbar-thumb{background:linear-gradient(var(--primary),var(--secondary));border-radius:4px;}
 
 /* ===== CUSTOM NAME ANIMATION MODAL ===== */
 .name-anim-modal-card{max-width:580px;}
@@ -314,7 +319,6 @@ textarea.inp{resize:vertical;min-height:65px;line-height:1.5;}
 .toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,255,136,.92);color:#07070f;padding:11px 24px;border-radius:10px;font-weight:700;z-index:4000;animation:toastIn .35s ease;pointer-events:none;font-size:13px;font-family:'Rajdhani',sans-serif;}
 @keyframes toastIn{0%{opacity:0;transform:translate(-50%,-55%) scale(.88);}100%{opacity:1;transform:translate(-50%,-50%) scale(1);}}
 .conn-status{position:fixed;bottom:85px;right:13px;font-size:10px;background:rgba(0,0,0,.45);padding:4px 9px;border-radius:11px;z-index:50;}
-::-webkit-scrollbar{width:4px;}::-webkit-scrollbar-track{background:rgba(20,20,40,.4);}::-webkit-scrollbar-thumb{background:linear-gradient(var(--primary),var(--secondary));border-radius:4px;}
 select option{background:#0f0f1e;}
 
 /* ===== MEDIA PREVIEW ===== */
@@ -327,6 +331,11 @@ select option{background:#0f0f1e;}
 .bg-layer.active{display:block;}
 #bg-default{display:block;}
 #bg-nameaim{background:#050510;}
+
+/* ===== COMEDY ===== */
+.joke-display{font-size:15px;margin:13px 0;min-height:65px;background:rgba(20,20,42,.7);padding:13px;border-radius:10px;line-height:1.6;}
+.comedy-controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.add-joke-section{margin-top:13px;padding-top:13px;border-top:1px solid rgba(100,100,255,.18);}
 </style>
 </head>
 <body>
@@ -424,14 +433,17 @@ select option{background:#0f0f1e;}
       <div class="j2">Global Real-Time Chat</div>
     </div>
     <form id="join-form">
-      <input id="jn" type="text" placeholder="Choose a unique username" required autocomplete="off" oninput="checkUsername(this.value)" maxlength="20"/>
-      <div class="name-taken" id="nameTakenMsg">⚠️ This username is already taken!</div>
-      <div class="username-suggest" id="usernameSuggest"></div>
+      <input id="jn" type="text" placeholder="Choose a username" required autocomplete="off" maxlength="20"/>
       <select id="jg" required><option value="">Select Gender</option><option>Male</option><option>Female</option><option>Other</option></select>
-      <select id="jr" required>
-        <option value="">Select Country</option>
-        <option>Afghanistan</option><option>Albania</option><option>Algeria</option><option>Andorra</option><option>Angola</option><option>Argentina</option><option>Armenia</option><option>Australia</option><option>Austria</option><option>Azerbaijan</option><option>Bahamas</option><option>Bahrain</option><option>Bangladesh</option><option>Belarus</option><option>Belgium</option><option>Belize</option><option>Benin</option><option>Bhutan</option><option>Bolivia</option><option>Bosnia and Herzegovina</option><option>Botswana</option><option>Brazil</option><option>Brunei</option><option>Bulgaria</option><option>Burkina Faso</option><option>Burundi</option><option>Cambodia</option><option>Cameroon</option><option>Canada</option><option>Cape Verde</option><option>Central African Republic</option><option>Chad</option><option>Chile</option><option>Colombia</option><option>Comoros</option><option>Congo</option><option>Costa Rica</option><option>Croatia</option><option>Cuba</option><option>Cyprus</option><option>Czech Republic</option><option>Denmark</option><option>Djibouti</option><option>Dominican Republic</option><option>Ecuador</option><option>Egypt</option><option>El Salvador</option><option>Equatorial Guinea</option><option>Eritrea</option><option>Estonia</option><option>Eswatini</option><option>Ethiopia</option><option>Fiji</option><option>Finland</option><option>France</option><option>Gabon</option><option>Gambia</option><option>Gambia</option><option>Georgia</option><option>Germany</option><option>Ghana</option><option>Greece</option><option>Guatemala</option><option>Guinea</option><option>Guyana</option><option>Haiti</option><option>Honduras</option><option>Hungary</option><option>Iceland</option><option>India</option><option>Indonesia</option><option>Iraq</option><option>Ireland</option><option>Israel</option><option>Italy</option><option>Jamaica</option><option>Japan</option><option>Jordan</option><option>Kazakhstan</option><option>Kenya</option><option>Kuwait</option><option>Kyrgyzstan</option><option>Laos</option><option>Latvia</option><option>Lebanon</option><option>Lesotho</option><option>Liberia</option><option>Libya</option><option>Liechtenstein</option><option>Lithuania</option><option>Luxembourg</option><option>Madagascar</option><option>Malawi</option><option>Malaysia</option><option>Maldives</option><option>Mali</option><option>Malta</option><option>Mauritania</option><option>Mauritius</option><option>Mexico</option><option>Moldova</option><option>Monaco</option><option>Mongolia</option><option>Montenegro</option><option>Morocco</option><option>Mozambique</option><option>Myanmar</option><option>Namibia</option><option>Nepal</option><option>Netherlands</option><option>New Zealand</option><option>Nicaragua</option><option>Niger</option><option>Nigeria</option><option>Norway</option><option>Oman</option><option>Palestine</option><option>Panama</option><option>Papua New Guinea</option><option>Paraguay</option><option>Peru</option><option>Philippines</option><option>Poland</option><option>Portugal</option><option>Qatar</option><option>Romania</option><option>Russia</option><option>Rwanda</option><option>Saudi Arabia</option><option>Senegal</option><option>Serbia</option><option>Sierra Leone</option><option>Singapore</option><option>Slovakia</option><option>Slovenia</option><option>Somalia</option><option>South Africa</option><option>South Korea</option><option>South Sudan</option><option>Spain</option><option>Sri Lanka</option><option>Sudan</option><option>Suriname</option><option>Sweden</option><option>Switzerland</option><option>Syria</option><option>Taiwan</option><option>Tajikistan</option><option>Tanzania</option><option>Thailand</option><option>Togo</option><option>Trinidad and Tobago</option><option>Tunisia</option><option>Turkey</option><option>Turkmenistan</option><option>Uganda</option><option>UAE</option><option>Ukraine</option><option>United Kingdom</option><option>USA</option><option>Uruguay</option><option>Uzbekistan</option><option>Venezuela</option><option>Vietnam</option><option>Yemen</option><option>Zambia</option><option>Zimbabwe</option>
-      </select>
+
+      <!-- COUNTRY SEARCH -->
+      <div class="country-search-wrap">
+        <input type="text" class="country-search-inp" id="countrySearch" placeholder="🔍 Search Country..." autocomplete="off"/>
+        <div class="country-dropdown" id="countryDropdown"></div>
+        <input type="hidden" id="jr" required/>
+      </div>
+      <div class="country-selected-display" id="countrySelectedDisplay"></div>
+
       <button type="submit" id="joinBtn">⚡ JOIN CHAT HOOK</button>
     </form>
   </div>
@@ -603,6 +615,110 @@ let pendingMediaData = null, pendingMediaType = null, pendingMediaName = null;
 let viewProfileTarget = null;
 let hasJoined = false;
 
+// ===== COUNTRY LIST =====
+const ALL_COUNTRIES = [
+  'Afghanistan','Albania','Algeria','Andorra','Angola','Argentina','Armenia','Australia','Austria','Azerbaijan',
+  'Bahamas','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina',
+  'Botswana','Brazil','Brunei','Bulgaria','Burkina Faso','Burundi','Cambodia','Cameroon','Canada','Cape Verde',
+  'Central African Republic','Chad','Chile','Colombia','Comoros','Congo','Costa Rica','Croatia','Cuba','Cyprus',
+  'Czech Republic','Denmark','Djibouti','Dominican Republic','Ecuador','Egypt','El Salvador','Equatorial Guinea',
+  'Eritrea','Estonia','Eswatini','Ethiopia','Fiji','Finland','France','Gabon','Gambia','Georgia','Germany',
+  'Ghana','Greece','Guatemala','Guinea','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia',
+  'Iraq','Ireland','Israel','Italy','Jamaica','Japan','Jordan','Kazakhstan','Kenya','Kuwait','Kyrgyzstan',
+  'Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Liechtenstein','Lithuania','Luxembourg','Madagascar',
+  'Malawi','Malaysia','Maldives','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Monaco','Mongolia',
+  'Montenegro','Morocco','Mozambique','Myanmar','Namibia','Nepal','Netherlands','New Zealand','Nicaragua','Niger',
+  'Nigeria','Norway','Oman','Palestine','Panama','Papua New Guinea','Paraguay','Peru','Philippines','Poland',
+  'Portugal','Qatar','Romania','Russia','Rwanda','Saudi Arabia','Senegal','Serbia','Sierra Leone','Singapore',
+  'Slovakia','Slovenia','Somalia','South Africa','South Korea','South Sudan','Spain','Sri Lanka','Sudan',
+  'Suriname','Sweden','Switzerland','Syria','Taiwan','Tajikistan','Tanzania','Thailand','Togo',
+  'Trinidad and Tobago','Tunisia','Turkey','Turkmenistan','Uganda','UAE','Ukraine','United Kingdom','USA',
+  'Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe'
+];
+
+// ===== COUNTRY SEARCH SETUP =====
+function setupCountrySearch() {
+  const searchInp = document.getElementById('countrySearch');
+  const dropdown = document.getElementById('countryDropdown');
+  const hiddenInp = document.getElementById('jr');
+  const selectedDisplay = document.getElementById('countrySelectedDisplay');
+  let highlightIndex = -1;
+  let selectedCountry = '';
+
+  function renderDropdown(list) {
+    dropdown.innerHTML = '';
+    if (!list.length) {
+      dropdown.innerHTML = '<div class="country-option" style="color:var(--text-muted);cursor:default;">No results found</div>';
+    } else {
+      list.forEach((c, i) => {
+        const d = document.createElement('div');
+        d.className = 'country-option' + (c === selectedCountry ? ' selected-opt' : '');
+        d.textContent = c;
+        d.onclick = () => selectCountry(c);
+        dropdown.appendChild(d);
+      });
+    }
+    highlightIndex = -1;
+  }
+
+  function selectCountry(c) {
+    selectedCountry = c;
+    hiddenInp.value = c;
+    searchInp.value = '';
+    searchInp.placeholder = '✅ ' + c;
+    selectedDisplay.textContent = '🌍 Selected: ' + c;
+    selectedDisplay.style.display = 'block';
+    dropdown.classList.remove('open');
+    dropdown.innerHTML = '';
+  }
+
+  searchInp.addEventListener('input', () => {
+    const q = searchInp.value.trim().toLowerCase();
+    if (!q) { dropdown.classList.remove('open'); return; }
+    const filtered = ALL_COUNTRIES.filter(c => c.toLowerCase().includes(q));
+    renderDropdown(filtered);
+    dropdown.classList.add('open');
+  });
+
+  searchInp.addEventListener('focus', () => {
+    const q = searchInp.value.trim().toLowerCase();
+    if (q) {
+      const filtered = ALL_COUNTRIES.filter(c => c.toLowerCase().includes(q));
+      renderDropdown(filtered);
+      dropdown.classList.add('open');
+    }
+  });
+
+  searchInp.addEventListener('keydown', (e) => {
+    const opts = dropdown.querySelectorAll('.country-option');
+    if (!opts.length) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      highlightIndex = Math.min(highlightIndex + 1, opts.length - 1);
+      opts.forEach((o, i) => o.classList.toggle('highlighted', i === highlightIndex));
+      opts[highlightIndex]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      highlightIndex = Math.max(highlightIndex - 1, 0);
+      opts.forEach((o, i) => o.classList.toggle('highlighted', i === highlightIndex));
+      opts[highlightIndex]?.scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (highlightIndex >= 0 && opts[highlightIndex]) {
+        selectCountry(opts[highlightIndex].textContent);
+      }
+    } else if (e.key === 'Escape') {
+      dropdown.classList.remove('open');
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.country-search-wrap')) {
+      dropdown.classList.remove('open');
+    }
+  });
+}
+
 // ===== DATA =====
 const jokes = [
   "I asked my WiFi password. It said: 'TryHarder123'. It wasn't even a hint.",
@@ -712,53 +828,6 @@ function load() {
   return false;
 }
 
-// ===== USERNAME SYSTEM =====
-let usernameCheckTimer = null;
-let lastCheckedName = '';
-let lastCheckResult = true;
-
-function checkUsername(val) {
-  const nm = val.trim();
-  const taken = document.getElementById('nameTakenMsg');
-  const suggest = document.getElementById('usernameSuggest');
-  if (!nm || nm.length < 2) {
-    taken.style.display = 'none';
-    suggest.innerHTML = '';
-    lastCheckResult = true;
-    lastCheckedName = '';
-    return;
-  }
-  suggest.innerHTML = '<span style="color:var(--text-muted);font-size:11px;">⏳ Checking...</span>';
-  taken.style.display = 'none';
-  clearTimeout(usernameCheckTimer);
-  usernameCheckTimer = setTimeout(() => {
-    socket.emit('check-username', nm, res => {
-      lastCheckedName = nm.toLowerCase();
-      if (res && res.available) {
-        taken.style.display = 'none';
-        suggest.innerHTML = '<span style="color:var(--accent);font-size:11px;">✅ Username available!</span>';
-        lastCheckResult = true;
-      } else {
-        taken.style.display = 'block';
-        suggest.innerHTML = 'Try: ' + genSuggestions(nm).map(s =>
-          `<span onclick="document.getElementById('jn').value='${s}';checkUsername('${s}')">${s}</span>`
-        ).join(' ');
-        lastCheckResult = false;
-      }
-    });
-  }, 400);
-}
-
-function isUsernameReady() {
-  const val = document.getElementById('jn').value.trim().toLowerCase();
-  return val.length >= 2 && val === lastCheckedName && lastCheckResult;
-}
-
-function genSuggestions(base) {
-  const clean = base.replace(/[^a-z0-9]/gi, '');
-  return ['_pro','_real','_xo','101','_vip'].map(s => clean + s);
-}
-
 // ===== APPLY AVATAR =====
 function applyAv(el, wrap) {
   if (!el) return;
@@ -776,19 +845,6 @@ function applyAv(el, wrap) {
 }
 function refreshTop() { applyAv(document.getElementById('userAvatar'), document.getElementById('topAvatarWrap')); }
 
-// Build avatar element from user data (for other users' messages)
-function buildAvEl(u, size) {
-  const sz = size || 32;
-  const avCls = u.photoUrl ? '' : ' ' + (u.avatarStyle || 'av-gradient');
-  const avContent = u.photoUrl
-    ? `<img src="${u.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
-    : (u.name || '?').charAt(0).toUpperCase();
-  const pfxCls = u.picEffect || 'pfx-none';
-  return `<div class="msg-avatar-wrap ${pfxCls}" onclick="viewOtherProfile('${esc(u.name||'')}',event)">
-    <div class="user-avatar${avCls}" style="width:${sz}px!important;height:${sz}px!important;font-size:${Math.floor(sz*.4)}px!important;cursor:pointer;">${avContent}</div>
-  </div>`;
-}
-
 // ===== MESSAGES =====
 const mc = document.getElementById('mc');
 function sysMsg(t) {
@@ -803,14 +859,12 @@ function addMsg(msg, u, own, mediaData, mediaType, msgId) {
   const d = document.createElement('div');
   d.className = 'message ' + (own ? 'own' : 'other');
   if (msgId) d.dataset.msgId = msgId;
-
   const avCls = u.photoUrl ? '' : ' ' + (u.avatarStyle || 'av-gradient');
   const avContent = u.photoUrl
     ? `<img src="${u.photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
     : (u.name || '?').charAt(0).toUpperCase();
   const pfxCls = u.picEffect || 'pfx-none';
   const moodStr = u.mood ? `<span class="user-mood">${u.mood}</span>` : '';
-
   let mediaHtml = '';
   if (mediaData && mediaType) {
     if (mediaType.startsWith('image'))
@@ -818,7 +872,6 @@ function addMsg(msg, u, own, mediaData, mediaType, msgId) {
     else if (mediaType.startsWith('video'))
       mediaHtml = `<div class="msg-media"><video src="${mediaData}" controls playsinline style="max-height:200px;"></video></div>`;
   }
-
   const likesId = 'likes_' + (msgId || Date.now() + '_' + Math.random());
   d.innerHTML = `
     <div class="msg-avatar-wrap ${pfxCls}" onclick="viewOtherProfile('${esc(u.name||'')}',event)">
@@ -869,7 +922,6 @@ function toggleFollow(targetName) {
   if (idx === -1) {
     U.following.push(targetName);
     save();
-    // Emit to server — server will update counts and notify target
     socket.emit('follow-req', { from: U.name, to: targetName, fromUser: U });
     showToast(`✅ Followed ${targetName}!`);
     return true;
@@ -887,13 +939,10 @@ function toggleFollowMain() {
   const nowFollowing = toggleFollow(viewProfileTarget);
   btn.className = 'follow-btn ' + (nowFollowing ? 'following' : 'not-following');
   btn.textContent = nowFollowing ? '✓ Following' : '+ Follow';
-  // Update following count in MY profile
   document.getElementById('myFollowing').textContent = U.following.length;
 }
 
-// ===== SERVER CONFIRMS FOLLOW =====
 socket.on('follow-confirmed', (data) => {
-  // Update our following count from server
   document.getElementById('myFollowing').textContent = data.newFollowingCount;
 });
 socket.on('unfollow-confirmed', (data) => {
@@ -911,7 +960,6 @@ function addNotif(icon, text, actions) {
   if (notifications.length > 50) notifications.pop();
   renderNotifs();
   updateNotifBadge();
-  // Flash badge
   const badge = document.getElementById('notifBadge');
   badge.style.animation = 'none';
   setTimeout(() => badge.style.animation = 'badgePop .3s ease', 10);
@@ -966,29 +1014,25 @@ function doJoin(name, gender, region) {
   document.getElementById('send-container').style.display = 'flex';
 }
 
+// ===== JOIN FORM SUBMIT =====
 document.getElementById('join-form').addEventListener('submit', e => {
   e.preventDefault();
   const name = document.getElementById('jn').value.trim();
   const gender = document.getElementById('jg').value;
   const region = document.getElementById('jr').value;
-  if (!name || !gender || !region) { showToast('Please fill all fields!', 'rgba(255,100,100,.9)'); return; }
+
+  if (!name || name.length < 2) { showToast('Username must be at least 2 characters!', 'rgba(255,100,100,.9)'); return; }
+  if (!gender) { showToast('Please select gender!', 'rgba(255,100,100,.9)'); return; }
+  if (!region) { showToast('Please select a country!', 'rgba(255,100,100,.9)'); return; }
 
   const btn = document.getElementById('joinBtn');
   btn.disabled = true;
   btn.textContent = '⏳ Joining...';
 
+  // Directly join — no conflict check
   socket.emit('join', { name, gender, region, ...U }, res => {
     btn.disabled = false;
     btn.textContent = '⚡ JOIN CHAT HOOK';
-    if (res && !res.success) {
-      document.getElementById('nameTakenMsg').style.display = 'block';
-      document.getElementById('usernameSuggest').innerHTML = 'Try: ' + genSuggestions(name).map(s =>
-        `<span onclick="document.getElementById('jn').value='${s}';checkUsername('${s}')">${s}</span>`
-      ).join(' ');
-      lastCheckResult = false;
-      showToast(res.message || 'Username taken!', 'rgba(255,100,100,.9)');
-      return;
-    }
     if (res && res.user) Object.assign(U, res.user);
     doJoin(name, gender, region);
     sysMsg(`✨ Welcome ${U.name}! You joined from ${U.region}`);
@@ -996,17 +1040,10 @@ document.getElementById('join-form').addEventListener('submit', e => {
   });
 });
 
-// Auto-rejoin for returning users
+// ===== AUTO-REJOIN =====
 function attemptAutoRejoin() {
   if (!U.name || !U.gender || !U.region) return;
   socket.emit('join', U, res => {
-    if (res && !res.success) {
-      U = { name:'', gender:'', region:'', avatarStyle:'av-gradient', bio:'', youtube:'', instagram:'', photoUrl:'', picEffect:'pfx-none', mood:'', nameChangedOnce:false, nameChangeTs:0, followers:[], following:[], totalLikes:0 };
-      document.getElementById('join-modal').style.display = 'flex';
-      document.getElementById('send-container').style.display = 'none';
-      showToast('Session expired, please rejoin!', 'rgba(255,170,0,.9)');
-      return;
-    }
     if (res && res.user) Object.assign(U, res.user);
     hasJoined = true;
     refreshTop();
@@ -1021,90 +1058,60 @@ function attemptAutoRejoin() {
 socket.on('connect', () => {
   document.getElementById('connStatus').textContent = '🟢 Live';
   if (hasJoined && U.name) {
-    // Reconnected mid-session — re-register
     socket.emit('join', U, res => {
       if (res && res.user) Object.assign(U, res.user);
       socket.emit('new-user-joined', U);
     });
   }
 });
-
 socket.on('disconnect', () => {
   document.getElementById('connStatus').textContent = '🔴 Reconnecting...';
 });
-
 socket.on('user-joined', u => {
   sysMsg(`🎉 ${u.name} joined from ${u.region || 'unknown'}`);
   if (u.name) onlineUserMap[u.name] = u;
 });
-
 socket.on('user-rejoined', u => {
   sysMsg(`🔁 ${u.name} is back!`);
   if (u.name) onlineUserMap[u.name] = u;
 });
-
 socket.on('receive', d => {
   if (d.user && d.user.name !== U.name) {
-    // Update onlineUserMap with latest profile data
-    if (d.user.name) onlineUserMap[d.user.name] = { ...onlineUserMap[d.user.name], ...d.user };
+    if (d.user.name) onlineUserMap[d.user.name] = { ...(onlineUserMap[d.user.name] || {}), ...d.user };
     addMsg(d.message, d.user, false, d.mediaData, d.mediaType, d.messageId);
   }
 });
-
 socket.on('online-users', users => {
   users.forEach(u => { if (u.name) onlineUserMap[u.name] = u; });
 });
-
 socket.on('left', u => {
   sysMsg(`👋 ${u.name} left`);
   if (u.name) delete onlineUserMap[u.name];
 });
-
 socket.on('user-profile-updated', data => {
-  if (data.name) {
-    onlineUserMap[data.name] = { ...onlineUserMap[data.name], ...data };
-  }
+  if (data.name) onlineUserMap[data.name] = { ...(onlineUserMap[data.name] || {}), ...data };
 });
-
 socket.on('mood-updated', data => {
-  if (data.name && onlineUserMap[data.name]) {
-    onlineUserMap[data.name].mood = data.mood;
-  }
+  if (data.name && onlineUserMap[data.name]) onlineUserMap[data.name].mood = data.mood;
 });
-
-// ===== FOLLOW NOTIFICATIONS FROM SERVER =====
 socket.on('follow-req', data => {
   if (data.to === U.name) {
-    // Update our followers list
     U.followers = U.followers || [];
     if (!U.followers.includes(data.from)) U.followers.push(data.from);
     save();
-    // Update UI counts
     document.getElementById('myFollowers').textContent = U.followers.length;
-    if (document.getElementById('profile-modal').classList.contains('open')) {
-      document.getElementById('myFollowers').textContent = U.followers.length;
-    }
-    // Add notification with follow-back option
-    addNotif('👥',
-      `<b>${data.from}</b> started following you`,
-      [{
-        label: '+ Follow Back',
-        cls: 'accept',
-        fn: `followBack('${data.from}')`
-      }]
-    );
+    addNotif('👥', `<b>${data.from}</b> started following you`,
+      [{ label: '+ Follow Back', cls: 'accept', fn: `followBack('${data.from}')` }]);
     showToast(`👥 ${data.from} followed you!`, 'rgba(0,204,255,.9)');
   }
 });
-
 socket.on('unfollow-notif', data => {
-  if (data.newFollowerCount !== undefined) {
-    U.followers = U.followers.filter(n => n !== data.from);
+  if (data.from) {
+    U.followers = (U.followers || []).filter(n => n !== data.from);
     save();
     document.getElementById('myFollowers').textContent = U.followers.length;
   }
 });
-
 socket.on('like-msg', data => {
   if (data.to === U.name) {
     U.totalLikes = data.newTotalLikes !== undefined ? data.newTotalLikes : (U.totalLikes || 0) + 1;
@@ -1113,7 +1120,6 @@ socket.on('like-msg', data => {
     document.getElementById('myLikes').textContent = U.totalLikes;
   }
 });
-
 socket.on('name-changed-broadcast', data => {
   if (onlineUserMap[data.oldName]) {
     onlineUserMap[data.newName] = { ...onlineUserMap[data.oldName], name: data.newName };
@@ -1122,7 +1128,6 @@ socket.on('name-changed-broadcast', data => {
   sysMsg(`✏️ ${data.oldName} → ${data.newName}`);
 });
 
-// ===== FOLLOW BACK =====
 function followBack(targetName) {
   if (!targetName || targetName === U.name) return;
   if (U.following.includes(targetName)) { showToast('Already following!'); return; }
@@ -1205,7 +1210,6 @@ function renderSocials() {
   if (U.youtube) c.innerHTML += `<a href="${U.youtube}" target="_blank">▶️ YouTube</a>`;
   if (U.instagram) c.innerHTML += `<a href="${U.instagram}" target="_blank">📸 Instagram</a>`;
 }
-
 function changeName() {
   if (!U.name) return;
   if (U.nameChangedOnce) {
@@ -1214,39 +1218,28 @@ function changeName() {
   }
   const n = document.getElementById('nameInp').value.trim();
   if (!n || n.length < 2) { showToast('Enter a valid name!', 'rgba(255,100,100,.9)'); return; }
-  // Check with server first
-  socket.emit('check-username', n, res => {
-    if (!res || !res.available) {
-      if (n.toLowerCase() !== U.name.toLowerCase()) {
-        showToast('Username already taken!', 'rgba(255,100,100,.9)'); return;
-      }
-    }
-    const old = U.name;
-    U.name = n; U.nameChangedOnce = true; U.nameChangeTs = Date.now();
-    save(); refreshTop();
-    document.getElementById('pname').textContent = n;
-    document.getElementById('nameInp').value = '';
-    updateNameChangeInfo();
-    applyAv(document.getElementById('profileAvatar'), document.getElementById('profileAvatarWrap'));
-    showToast('✅ Name changed!');
-    socket.emit('name-changed', { oldName: old, newName: n, user: U });
-  });
+  const old = U.name;
+  U.name = n; U.nameChangedOnce = true; U.nameChangeTs = Date.now();
+  save(); refreshTop();
+  document.getElementById('pname').textContent = n;
+  document.getElementById('nameInp').value = '';
+  updateNameChangeInfo();
+  applyAv(document.getElementById('profileAvatar'), document.getElementById('profileAvatarWrap'));
+  showToast('✅ Name changed!');
+  socket.emit('name-changed', { oldName: old, newName: n, user: U });
 }
-
 function saveBio() {
   U.bio = document.getElementById('bioInp').value.trim(); save();
   document.getElementById('bioDisplay').textContent = U.bio;
   showToast('Bio saved!');
   socket.emit('profile-updated', U);
 }
-
 function saveSocials() {
   U.youtube = document.getElementById('ytInp').value.trim();
   U.instagram = document.getElementById('igInp').value.trim();
   save(); renderSocials(); showToast('Links saved!');
   socket.emit('profile-updated', U);
 }
-
 function logoutUser() {
   if (confirm('Logout?')) { localStorage.removeItem('chv5'); localStorage.removeItem('chv4'); location.reload(); }
 }
@@ -1258,7 +1251,6 @@ function handlePhoto(e) {
     U.photoUrl = ev.target.result; save(); refreshTop();
     applyAv(document.getElementById('profileAvatar'), document.getElementById('profileAvatarWrap'));
     showToast('Photo updated!');
-    // Broadcast new photo to all users
     socket.emit('profile-updated', U);
   };
   r.readAsDataURL(f); e.target.value = '';
@@ -1271,10 +1263,7 @@ function buildMoodBar() {
     const btn = document.createElement('button');
     btn.className = 'mood-btn' + (U.mood === m.k ? ' active' : '');
     btn.textContent = m.k + ' ' + m.n;
-    btn.onclick = () => {
-      U.mood = U.mood === m.k ? '' : m.k; save(); buildMoodBar();
-      socket.emit('mood-update', { name: U.name, mood: U.mood });
-    };
+    btn.onclick = () => { U.mood = U.mood === m.k ? '' : m.k; save(); buildMoodBar(); socket.emit('mood-update', { name: U.name, mood: U.mood }); };
     b.appendChild(btn);
   });
 }
@@ -1284,18 +1273,16 @@ function viewOtherProfile(name, e) {
   if (e) e.stopPropagation();
   if (!name || name === U.name || name === 'System') return;
   viewProfileTarget = name;
-
-  // Try to get latest from server
-  socket.emit('get-user-profile', name, res => {
-    const u = (res && res.success && res.user) ? res.user : (onlineUserMap[name] || { name });
-    _showViewProfile(u);
-  });
-  // Show immediately with cached data too
-  const u = onlineUserMap[name] || { name };
-  _showViewProfile(u);
+  const cached = onlineUserMap[name] || { name };
+  _showViewProfile(cached);
   document.getElementById('view-profile-modal').classList.add('open');
+  socket.emit('get-user-profile', name, res => {
+    if (res && res.success && res.user) {
+      onlineUserMap[name] = { ...(onlineUserMap[name] || {}), ...res.user };
+      _showViewProfile(res.user);
+    }
+  });
 }
-
 function _showViewProfile(u) {
   document.getElementById('vpName').textContent = u.name || viewProfileTarget;
   document.getElementById('vpRegion').textContent = u.region || '';
@@ -1308,7 +1295,6 @@ function _showViewProfile(u) {
   const soc = document.getElementById('vpSocials'); soc.innerHTML = '';
   if (u.youtube) soc.innerHTML += `<a href="${u.youtube}" target="_blank">▶️ YouTube</a>`;
   if (u.instagram) soc.innerHTML += `<a href="${u.instagram}" target="_blank">📸 Instagram</a>`;
-  // Avatar
   const wrap = document.getElementById('vpAvatarWrap');
   const avContent = u.photoUrl
     ? `<img src="${u.photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
@@ -1322,7 +1308,6 @@ function _showViewProfile(u) {
   btn.className = 'follow-btn ' + (isFollowing ? 'following' : 'not-following');
   btn.textContent = isFollowing ? '✓ Following' : '+ Follow';
 }
-
 function closeViewProfile() { document.getElementById('view-profile-modal').classList.remove('open'); }
 
 // ===== AV GRID =====
@@ -1512,7 +1497,7 @@ function switchBg(id) {
   }
 }
 
-// === BACKGROUND ANIMATIONS (all original ones preserved) ===
+// === BACKGROUND ANIMATIONS ===
 function bgMatrix(){const ctx=rc('matrix-canvas');if(!ctx)return;const W=ctx.canvas.width,H=ctx.canvas.height;const cols=Math.floor(W/14);const drops=Array(cols).fill(1);const f=()=>{ctx.fillStyle='rgba(0,0,0,0.05)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#0f0';ctx.font='13px monospace';drops.forEach((y,i)=>{ctx.fillText(String.fromCharCode(0x30A0+Math.random()*96),i*14,y*14);if(y*14>H&&Math.random()>.975)drops[i]=0;drops[i]++;});animRafs.matrix=requestAnimationFrame(f);};f();}
 function bgWarp(){const ctx=rc('warp-canvas');if(!ctx)return;const W=ctx.canvas.width,H=ctx.canvas.height;const stars=Array.from({length:400},()=>({x:(Math.random()-.5)*W,y:(Math.random()-.5)*H,z:Math.random()*W}));const f=()=>{ctx.fillStyle='rgba(5,5,15,0.25)';ctx.fillRect(0,0,W,H);stars.forEach(s=>{s.z-=8;if(s.z<=0){s.x=(Math.random()-.5)*W;s.y=(Math.random()-.5)*H;s.z=W;}const sx=s.x/s.z*W+W/2,sy=s.y/s.z*H+H/2,r=Math.max(0,(1-s.z/W)*3);const a=1-s.z/W;ctx.fillStyle=`rgba(${Math.floor(100+a*155)},${Math.floor(150+a*105)},255,${a})`;ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();});animRafs.warp=requestAnimationFrame(f);};f();}
 function bgGalaxy(){const ctx=rc('galaxy-canvas');if(!ctx)return;const W=ctx.canvas.width,H=ctx.canvas.height;const pts=Array.from({length:600},()=>({a:Math.random()*Math.PI*2,r:Math.random()*Math.min(W,H)*.45,sp:.001+Math.random()*.003,c:`hsl(${200+Math.random()*160},80%,${50+Math.random()*30}%)`}));const f=()=>{ctx.fillStyle='rgba(3,3,15,0.08)';ctx.fillRect(0,0,W,H);pts.forEach(p=>{p.a+=p.sp;const x=W/2+Math.cos(p.a)*p.r,y=H/2+Math.sin(p.a)*p.r*.45;ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(x,y,1.5,0,Math.PI*2);ctx.fill();});animRafs.galaxy=requestAnimationFrame(f);};f();}
@@ -1548,14 +1533,13 @@ window.onload = () => {
   const savedBg = localStorage.getItem('chHookBg') || 'default';
   const joined = load();
   startJoinAnim();
+  setupCountrySearch();
   newJoke();
 
   if (joined && U.name && U.gender && U.region) {
-    // Hide join modal immediately — auto-rejoin
     document.getElementById('join-modal').style.display = 'none';
     document.getElementById('send-container').style.display = 'flex';
     refreshTop();
-    // Rejoin via socket once connected
     if (socket.connected) {
       attemptAutoRejoin();
     } else {
@@ -1566,7 +1550,6 @@ window.onload = () => {
     document.getElementById('send-container').style.display = 'none';
   }
 
-  // Apply saved background
   setTimeout(() => {
     if (savedBg === 'nameaim') {
       const savedName = localStorage.getItem('chHookNameAnimName') || U.name || 'ChatHook';
